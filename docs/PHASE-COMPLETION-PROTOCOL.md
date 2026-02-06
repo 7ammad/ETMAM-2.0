@@ -84,6 +84,41 @@ Use this **every time** Phase 1.1 is (re)done or audited.
 
 ---
 
+## Phase 1.2 — Database Schema (checklist)
+
+Use this when Phase 1.2 is (re)done or audited. **Schema source of truth: BACKEND.md** (see doc conflict note in PHASE-1.2-CHECKLIST-RESULT.md if present).
+
+### 1. Migration and tables
+
+- [ ] `supabase/` folder exists with `config.toml` and `migrations/`.
+- [ ] Migration file creates all 8 tables from BACKEND.md in FK order: `profiles`, `evaluation_presets`, `tenders`, `evaluations`, `rate_cards`, `rate_card_items`, `cost_items`, `extraction_cache`.
+- [ ] No tables from IMPLEMENTATION.md task 2 that conflict with BACKEND (scoring_configs, tender_analyses, etc.) — use BACKEND.md only; log conflict.
+
+### 2. Triggers and indexes
+
+- [ ] Trigger `on_auth_user_created` → `handle_new_user()` (profile on signup).
+- [ ] Trigger `on_evaluation_change` → `update_tender_evaluation()`.
+- [ ] Trigger `on_cost_item_change` → `update_tender_costs()`.
+- [ ] Trigger `on_rate_card_item_change` → `update_rate_card_count()`.
+- [ ] Indexes per BACKEND.md on foreign keys and common filters.
+
+### 3. RLS and storage
+
+- [ ] RLS enabled on all 8 tables.
+- [ ] Policies: own-row SELECT/INSERT/UPDATE/DELETE for user-owned tables; extraction_cache: SELECT all, INSERT authenticated.
+- [ ] Storage buckets `tender-pdfs` and `rate-card-files` with RLS (user-scoped by folder).
+
+### 4. TypeScript types
+
+- [ ] `src/types/database.ts` has types for all 8 tables (Row/Insert/Update or equivalent).
+
+### 5. Acceptance (when DB is available)
+
+- [ ] Migration runs (`supabase db push` or `supabase start` + `db reset`) without errors.
+- [ ] All 8 tables visible in Supabase dashboard; RLS on each; test row insertable.
+
+---
+
 ## How to use this with an agent
 
 **Prompt to give before Phase 1.1 (or re-do of scaffolding):**
