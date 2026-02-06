@@ -1,0 +1,28 @@
+---
+description: Enforce phase completion so no steps or files are missed
+globs: ["**/*.ts", "**/*.tsx", "**/package.json", "**/.env.example"]
+---
+
+# Phase implementation — Etmam 2.0
+
+When implementing any phase from IMPLEMENTATION.md (e.g. Phase 1.1, 1.2, 1.3):
+
+1. **Read the spec docs first.** Do not write code until you have read the phase section in IMPLEMENTATION.md and the referenced docs (BACKEND.md, FRONTEND.md, TECH-STACK.md as applicable).
+
+2. **Implement every task in the phase.** Use the phase’s task list as a checklist. Do not skip items (e.g. “Create folder structure” means every listed folder; “Configure Tailwind” means all design tokens listed in FRONTEND.md).
+
+3. **Before marking the phase done:**
+   - Run the **Phase Completion Checklist** for that phase in `docs/PHASE-COMPLETION-PROTOCOL.md`.
+   - Output the checklist with ✅ or ❌ for each line.
+   - Fix any ❌ before saying the phase is complete.
+   - Run the **Acceptance Test** from IMPLEMENTATION.md for that phase and confirm each point.
+
+4. **File and structure compliance:**
+   - If IMPLEMENTATION or FRONTEND specifies a file path (e.g. `lib/supabase/client.ts`), create that file with the correct purpose. Do not omit files or substitute with “we’ll add it later.”
+   - If a doc references another doc (e.g. .env.example says “See docs/setup-guide.md”), either create the referenced doc or remove the reference.
+
+5. **Next.js 16:** Use **proxy.ts** (export `proxy` + `config.matcher`) for route protection, not middleware.ts.
+
+6. **Hard Review required:** After the phase checklist and acceptance test pass, a reviewer (code-reviewer) must run `docs/HARD-REVIEW-CHECKLIST.md` and sign off. See `docs/WORKFLOW.md` and `docs/AGENT-ASSIGNMENTS.md`. No phase is complete without reviewer sign-off.
+
+When in doubt, follow IMPLEMENTATION.md, the Phase Completion Protocol, and the required workflow; do not guess or simplify the task list.

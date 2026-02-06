@@ -1,26 +1,163 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================
+   Etmam 2.0 Design System
+   Navy/Gold professional theme — Dark mode only
+   ============================================ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* ── Primary — Deep Navy ── */
+  --color-navy-50: #f0f4f8;
+  --color-navy-100: #d9e2ec;
+  --color-navy-200: #bcccdc;
+  --color-navy-300: #9fb3c8;
+  --color-navy-400: #829ab1;
+  --color-navy-500: #627d98;
+  --color-navy-600: #486581;
+  --color-navy-700: #334e68;
+  --color-navy-800: #243b53;
+  --color-navy-900: #102a43;
+  --color-navy-950: #0a1929;
+
+  /* ── Accent — Gold ── */
+  --color-gold-50: #fffbea;
+  --color-gold-100: #fff3c4;
+  --color-gold-200: #fce588;
+  --color-gold-300: #fadb5f;
+  --color-gold-400: #f7c948;
+  --color-gold-500: #f0b429;
+  --color-gold-600: #de911d;
+  --color-gold-700: #cb6e17;
+  --color-gold-800: #b44d12;
+  --color-gold-900: #8d2b0b;
+
+  /* ── Confidence Scores ── */
+  --color-confidence-high: #10B981;
+  --color-confidence-medium: #F59E0B;
+  --color-confidence-low: #EF4444;
+  --color-confidence-unknown: #6B7280;
+
+  /* ── Status Colors ── */
+  --color-status-draft: #6B7280;
+  --color-status-active: #3B82F6;
+  --color-status-scored: #8B5CF6;
+  --color-status-pushed: #10B981;
+  --color-status-rejected: #EF4444;
+  --color-status-expired: #9CA3AF;
+
+  /* ── Semantic mappings ── */
+  --color-background: var(--color-navy-950);
+  --color-foreground: var(--color-navy-50);
+  --color-card: var(--color-navy-900);
+  --color-card-foreground: var(--color-navy-100);
+  --color-border: var(--color-navy-700);
+  --color-border-hover: var(--color-navy-600);
+  --color-border-focus: var(--color-gold-500);
+  --color-input: var(--color-navy-800);
+  --color-ring: var(--color-gold-500);
+  --color-primary: var(--color-gold-500);
+  --color-primary-foreground: var(--color-navy-950);
+  --color-secondary: var(--color-navy-700);
+  --color-secondary-foreground: var(--color-navy-100);
+  --color-muted: var(--color-navy-800);
+  --color-muted-foreground: var(--color-navy-400);
+  --color-accent: var(--color-gold-500);
+  --color-accent-foreground: var(--color-navy-950);
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #ffffff;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+
+  /* ── Typography ── */
+  --font-sans: "Inter", "Noto Sans Arabic", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-arabic: "Noto Sans Arabic", "Segoe UI", "Tahoma", sans-serif;
+
+  /* ── Border Radius ── */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(240, 180, 41, 0.15);
+
+  /* ── Animations ── */
+  --animate-fade-in: fadeIn 0.3s ease-out;
+  --animate-slide-up: slideUp 0.3s ease-out;
+  --animate-pulse-gold: pulseGold 2s ease-in-out infinite;
+  --animate-score-fill: scoreFill 1s ease-out;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
+@keyframes slideUp {
+  0% { transform: translateY(8px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulseGold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240, 180, 41, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(240, 180, 41, 0); }
+}
+
+@keyframes scoreFill {
+  0% { width: 0%; }
+  100% { width: var(--score-width); }
+}
+
+/* ── Base styles ── */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+/* ── Selection ── */
+::selection {
+  background: var(--color-gold-500);
+  color: var(--color-navy-950);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-navy-900);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-navy-600);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-navy-500);
+}
+
+/* ── Focus ring ── */
+*:focus-visible {
+  outline: 2px solid var(--color-gold-500);
+  outline-offset: 2px;
+}
+
+/* ── Numbers always LTR ── */
+.ltr-nums {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* ── Arabic text class ── */
+.font-arabic {
+  font-family: var(--font-arabic);
 }
