@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { Header } from "@/components/layout/Header";
 
 /**
- * Dashboard layout shell — sidebar + header per FRONTEND.md / APP-FLOW.md.
- * Sidebar and header content will be replaced by real components in Phase 1.3+.
+ * Dashboard layout — sidebar + header per FRONTEND.md / APP-FLOW.md.
+ * Header shows user and logout (Phase 1.3).
  */
 export default function DashboardLayout({
   children,
@@ -54,12 +55,7 @@ export default function DashboardLayout({
 
       {/* Main: header + content */}
       <div className="flex flex-1 flex-col">
-        <header className="sticky top-0 z-10 border-b border-border bg-card px-6 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">إتمام — نظام إدارة المنافسات</span>
-            {/* User menu placeholder — Phase 1.3 Auth */}
-          </div>
-        </header>
+        <Header />
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>
