@@ -17,7 +17,7 @@ Product and technical decisions are in **8 context documents**.
 - **Primary location (this machine):** `C:\Users\7amma\.cursor\context\`
 - **In-repo (if present):** `docs/context/` — copy of the same 8 files for reviewers and portability
 
-Files: `IDEA.md`, `PRD.md`, `APP-FLOW.md`, `TECH-STACK.md`, `BACKEND.md`, `FRONTEND.md`, `IMPLEMENTATION.md`, `TENDER-STRUCTURE.md`.
+Files: `IDEA.md`, `PRD.md`, `APP-FLOW.md`, `TECH-STACK.md`, `BACKEND.md`, `FRONTEND.md`, `IMPLEMENTATION.md`, `TENDER-STRUCTURE-v3.0-VERIFIED.md`.
 
 ## Workflows and agents
 

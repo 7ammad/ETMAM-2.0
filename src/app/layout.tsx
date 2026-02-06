@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Arabic } from "next/font/google";
+import { Cairo, Noto_Kufi_Arabic } from "next/font/google";
+import { Toaster } from "@/components/ui/toast";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
+const cairo = Cairo({
+  subsets: ["latin", "arabic"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-cairo",
 });
 
-const notoSansArabic = Noto_Sans_Arabic({
+const notoKufiArabic = Noto_Kufi_Arabic({
   subsets: ["arabic"],
   display: "swap",
-  variable: "--font-noto-arabic",
+  variable: "--font-noto-kufi",
 });
 
 export const metadata: Metadata = {
@@ -31,9 +32,10 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className="dark">
       <body
-        className={`${inter.variable} ${notoSansArabic.variable} antialiased min-h-screen bg-background text-foreground`}
+        className={`${cairo.variable} ${notoKufiArabic.variable} antialiased min-h-screen bg-background text-foreground`}
       >
         {children}
+        <Toaster />
       </body>
     </html>
   );

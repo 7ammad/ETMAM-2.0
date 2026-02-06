@@ -28,13 +28,18 @@ All product and technical decisions live in **eight context documents**. Every i
 | **BACKEND.md** | 8 tables, RLS, API endpoints, TypeScript types. Use for schema and API contracts. |
 | **FRONTEND.md** | Component tree, design tokens (navy/gold), Zustand stores. Use for folder and UI. |
 | **IMPLEMENTATION.md** | Day 1/2/3 plan, phases, acceptance tests, agent table. Use as the build checklist. |
-| **TENDER-STRUCTURE.md** | Saudi tender 11-section structure. Use for AI extraction prompts. |
+| **TENDER-STRUCTURE-v3.0-VERIFIED.md** | Saudi tender 12-section structure (verified). Use for AI extraction prompts. |
 
 ### What to do
 
 1. **Before any phase:** Tell the agent/CLI to “read all 8 context docs in [path], then execute Phase X.Y per IMPLEMENTATION.md.”
 2. **For reviewers (e.g. Claude Code CLI):** Point them at this guide and at `docs/context/` if you’ve copied the docs into the repo (see below).
 3. **Keep one source of truth:** Prefer updating the files in `C:\Users\7amma\.cursor\context\` and, if you use in-repo copies, sync them when the plan or specs change.
+
+### Tech stack rules (no exceptions)
+
+- **Next.js 16+:** Use **proxy.ts** only for route protection; do not create **middleware.ts** (middleware is deprecated and renamed to Proxy in v16). See [docs/ARCHITECTURE.md](ARCHITECTURE.md) and [docs/GOTCHA-TECH-STACK-VERIFICATION.md](GOTCHA-TECH-STACK-VERIFICATION.md).
+- **Supabase:** Use **@supabase/ssr** (createServerClient / createBrowserClient) only; do not use **@supabase/auth-helpers-nextjs** or createMiddlewareClient.
 
 ---
 
@@ -161,7 +166,7 @@ The **Cursor Agent Assignments** table in IMPLEMENTATION.md maps **tasks to role
 | 1.2 Database | BACKEND, IMPLEMENTATION |
 | 1.3 Auth | BACKEND, PRD, APP-FLOW, IMPLEMENTATION |
 | 1.4 Tender upload/list | PRD, BACKEND, FRONTEND, IMPLEMENTATION |
-| 2.x AI & pipeline | TECH-STACK, BACKEND, TENDER-STRUCTURE, IMPLEMENTATION |
+| 2.x AI & pipeline | TECH-STACK, BACKEND, TENDER-STRUCTURE-v3.0-VERIFIED, IMPLEMENTATION |
 | 3.x Polish & demo | PRD, FRONTEND, IMPLEMENTATION |
 
 Use this guide as the single entry point for workflows, agents, and context.

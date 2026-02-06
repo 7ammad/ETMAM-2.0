@@ -1,7 +1,10 @@
+import { SettingsTabs } from "@/components/settings/SettingsTabs";
+
 export default function SettingsPage() {
   return (
-    <main>
-      <h1>الإعدادات — Settings</h1>
+    <main className="p-6">
+      <h1 className="mb-6 text-2xl font-bold text-foreground">الإعدادات</h1>
+      <SettingsTabs />
     </main>
   );
 }

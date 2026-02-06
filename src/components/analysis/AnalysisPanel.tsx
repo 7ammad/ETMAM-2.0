@@ -25,6 +25,7 @@ interface EvaluationData {
   overall_score: number;
   auto_recommendation: "proceed" | "review" | "skip";
   criteria_scores: CriteriaScoresPayload;
+  updated_at?: string;
 }
 
 interface AnalysisPanelProps {
@@ -49,7 +50,29 @@ export function AnalysisPanel({
 
     return (
       <div className="space-y-6">
-        <h2 className="text-lg font-semibold text-foreground">نتيجة التحليل</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">نتيجة التحليل</h2>
+          <AnalyzeButton
+            tenderId={tenderId}
+            onError={onError}
+            label="إعادة التحليل"
+            pendingLabel="جارٍ إعادة التحليل..."
+          />
+        </div>
+
+        {evaluation.updated_at && (
+          <p className="text-xs text-muted-foreground">
+            آخر تحليل:{" "}
+            {new Date(evaluation.updated_at).toLocaleDateString("ar-SA", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-8">
           <ScoreGauge score={evaluation.overall_score} />
           <div className="flex-1 space-y-4 min-w-0">
@@ -62,6 +85,11 @@ export function AnalysisPanel({
         </div>
         <ScoreBreakdown scores={scores} />
         <EvidenceQuotes evidence={evidence} />
+
+        <p className="text-xs text-muted-foreground border-t border-border pt-4">
+          تنويه: هذا التحليل تم إنشاؤه بواسطة الذكاء الاصطناعي وهو استرشادي
+          فقط. يُرجى التحقق من النتائج قبل اتخاذ أي قرار.
+        </p>
       </div>
     );
   }

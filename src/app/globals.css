@@ -70,9 +70,9 @@
   --color-danger: #EF4444;
 
   /* ── Typography ── */
-  --font-sans: "Inter", "Noto Sans Arabic", system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-cairo), "Cairo", "Noto Kufi Arabic", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
-  --font-arabic: "Noto Sans Arabic", "Segoe UI", "Tahoma", sans-serif;
+  --font-arabic: var(--font-noto-kufi), "Noto Kufi Arabic", "Segoe UI", "Tahoma", sans-serif;
 
   /* ── Border Radius ── */
   --radius-sm: 0.25rem;
@@ -86,11 +86,47 @@
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
   --shadow-glow: 0 0 20px rgba(240, 180, 41, 0.15);
 
+  /* ── Spacing Scale (4px base) ── */
+  --spacing-px: 1px;
+  --spacing-0: 0;
+  --spacing-0\.5: 0.125rem;
+  --spacing-1: 0.25rem;
+  --spacing-1\.5: 0.375rem;
+  --spacing-2: 0.5rem;
+  --spacing-2\.5: 0.625rem;
+  --spacing-3: 0.75rem;
+  --spacing-3\.5: 0.875rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+  --spacing-20: 5rem;
+  --spacing-24: 6rem;
+
+  /* ── Transitions ── */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Z-Index Scale ── */
+  --z-dropdown: 50;
+  --z-sticky: 100;
+  --z-overlay: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+
   /* ── Animations ── */
   --animate-fade-in: fadeIn 0.3s ease-out;
   --animate-slide-up: slideUp 0.3s ease-out;
+  --animate-slide-down: slideDown 0.3s ease-out;
+  --animate-slide-in-right: slideInRight 0.3s ease-out;
   --animate-pulse-gold: pulseGold 2s ease-in-out infinite;
   --animate-score-fill: scoreFill 1s ease-out;
+  --animate-spin: spin 1s linear infinite;
+  --animate-shimmer: shimmer 2s ease-in-out infinite;
 }
 
 @keyframes fadeIn {
@@ -111,6 +147,26 @@
 @keyframes scoreFill {
   0% { width: 0%; }
   100% { width: var(--score-width); }
+}
+
+@keyframes slideDown {
+  0% { transform: translateY(-8px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInRight {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 /* ── Base styles ── */
@@ -160,4 +216,37 @@ body {
 /* ── Arabic text class ── */
 .font-arabic {
   font-family: var(--font-arabic);
+}
+
+/* ── Skeleton shimmer ── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-navy-800) 0%,
+    var(--color-navy-700) 50%,
+    var(--color-navy-800) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* ── Table styles ── */
+.table-zebra tbody tr:nth-child(even) {
+  background: var(--color-navy-900);
+}
+
+.table-zebra tbody tr:nth-child(odd) {
+  background: var(--color-navy-950);
+}
+
+.table-zebra tbody tr:hover {
+  background: var(--color-navy-800);
+}
+
+/* ── Sonner toast overrides ── */
+[data-sonner-toaster] [data-sonner-toast] {
+  --normal-bg: var(--color-navy-800);
+  --normal-text: var(--color-navy-50);
+  --normal-border: var(--color-navy-600);
+  font-family: var(--font-sans);
 }

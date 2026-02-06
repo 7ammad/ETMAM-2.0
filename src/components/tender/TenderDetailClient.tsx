@@ -27,6 +27,7 @@ export function TenderDetailClient({
             string,
             unknown
           >,
+          updated_at: evaluation.updated_at,
         }
       : null;
 

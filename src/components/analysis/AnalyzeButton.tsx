@@ -7,17 +7,27 @@ import { useSettingsStore } from "@/stores/settings-store";
 interface AnalyzeButtonProps {
   tenderId: string;
   onError?: (message: string) => void;
+  label?: string;
+  pendingLabel?: string;
 }
 
-export function AnalyzeButton({ tenderId, onError }: AnalyzeButtonProps) {
+export function AnalyzeButton({
+  tenderId,
+  onError,
+  label = "تحليل بالذكاء الاصطناعي",
+  pendingLabel = "جارٍ التحليل...",
+}: AnalyzeButtonProps) {
   const [isPending, startTransition] = useTransition();
   const scoringWeights = useSettingsStore((s) => s.scoringWeights);
+  const aiProvider = useSettingsStore((s) => s.aiProvider);
 
   function handleAnalyze() {
     startTransition(async () => {
-      const result = await analyzeTender(tenderId, {
-        ...scoringWeights,
-      } as Record<string, number>);
+      const result = await analyzeTender(
+        tenderId,
+        { ...scoringWeights } as Record<string, number>,
+        aiProvider
+      );
       if (result.success) {
         window.location.reload();
       } else {
@@ -33,7 +43,7 @@ export function AnalyzeButton({ tenderId, onError }: AnalyzeButtonProps) {
       disabled={isPending}
       className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-gold-600 disabled:opacity-50"
     >
-      {isPending ? "جارٍ التحليل..." : "تحليل بالذكاء الاصطناعي"}
+      {isPending ? pendingLabel : label}
     </button>
   );
 }

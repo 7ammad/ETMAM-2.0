@@ -8,9 +8,15 @@ import {
   type ParsedTender,
 } from "@/lib/utils/csv-parser";
 import { uploadTenders } from "@/app/actions/tenders";
+import type { ExtractionResult } from "@/lib/ai/provider";
+import { PDFExtractionPreview } from "./PDFExtractionPreview";
+import {
+  MAX_FILE_SIZE_MB,
+  MAX_PDF_SIZE_MB,
+} from "@/lib/constants";
 
-const MAX_FILE_SIZE_MB = 10;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const MAX_CSV_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const MAX_PDF_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 
 export function TenderUpload() {
   const router = useRouter();
@@ -19,30 +25,70 @@ export function TenderUpload() {
   const [errors, setErrors] = useState<{ row: number; message: string }[]>([]);
   const [uploading, setUploading] = useState(false);
 
+  // PDF extraction state
+  const [extracting, setExtracting] = useState(false);
+  const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
+  const [pdfFileName, setPdfFileName] = useState("");
+
+  function resetState() {
+    setFile(null);
+    setPreview([]);
+    setErrors([]);
+    setExtraction(null);
+    setPdfFileName("");
+  }
+
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
+    const ext = selectedFile.name.split(".").pop()?.toLowerCase();
+    const isPdf = ext === "pdf";
+    const maxBytes = isPdf ? MAX_PDF_BYTES : MAX_CSV_BYTES;
+    const maxMB = isPdf ? MAX_PDF_SIZE_MB : MAX_FILE_SIZE_MB;
+
+    if (selectedFile.size > maxBytes) {
       setErrors([
         {
           row: 0,
-          message: `حجم الملف يتجاوز الحد المسموح (${MAX_FILE_SIZE_MB} ميجابايت)`,
+          message: `حجم الملف يتجاوز الحد المسموح (${maxMB} ميجابايت)`,
         },
       ]);
       setFile(null);
       setPreview([]);
+      setExtraction(null);
       return;
     }
 
     setFile(selectedFile);
     setErrors([]);
     setPreview([]);
+    setExtraction(null);
 
     try {
-      const ext = selectedFile.name.split(".").pop()?.toLowerCase();
+      if (isPdf) {
+        // PDF: send to extraction API
+        setPdfFileName(selectedFile.name);
+        setExtracting(true);
 
-      if (ext === "csv") {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        const response = await fetch("/api/ai/extract", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          setErrors([{ row: 0, message: data.error ?? "فشل استخراج البيانات" }]);
+        } else {
+          setExtraction(data.extraction as ExtractionResult);
+        }
+
+        setExtracting(false);
+      } else if (ext === "csv") {
         const text = await selectedFile.text();
         const result = parseCSV(text);
         setPreview(result.valid);
@@ -56,11 +102,12 @@ export function TenderUpload() {
         setErrors([
           {
             row: 0,
-            message: "نوع الملف غير مدعوم. استخدم CSV أو Excel",
+            message: "نوع الملف غير مدعوم. استخدم CSV أو Excel أو PDF",
           },
         ]);
       }
     } catch (err) {
+      setExtracting(false);
       setErrors([
         {
           row: 0,
@@ -84,9 +131,7 @@ export function TenderUpload() {
             ? "تم رفع منافسة واحدة بنجاح"
             : `تم رفع ${count} منافسة بنجاح`;
         alert(msg);
-        setFile(null);
-        setPreview([]);
-        setErrors([]);
+        resetState();
         router.push("/tenders");
         router.refresh();
       } else {
@@ -99,25 +144,48 @@ export function TenderUpload() {
     }
   }
 
+  // Show PDF extraction preview
+  if (extraction) {
+    return (
+      <PDFExtractionPreview
+        extraction={extraction}
+        fileName={pdfFileName}
+        onBack={resetState}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-lg border-2 border-dashed border-border p-8 text-center transition-colors hover:border-gold-500">
         <input
           type="file"
-          accept=".csv,.xlsx,.xls"
+          accept=".csv,.xlsx,.xls,.pdf"
           onChange={handleFileChange}
           className="hidden"
           id="file-upload"
         />
         <label htmlFor="file-upload" className="block cursor-pointer">
           <div className="mb-2 text-muted-foreground">
-            {file ? file.name : "اسحب ملف CSV أو Excel هنا أو انقر للاختيار"}
+            {extracting
+              ? "جارٍ استخراج البيانات من الملف..."
+              : file
+                ? file.name
+                : "اسحب ملف CSV أو Excel أو PDF هنا أو انقر للاختيار"}
           </div>
           <div className="text-sm text-muted-foreground">
-            الحد الأقصى: {MAX_FILE_SIZE_MB} ميجابايت
+            CSV/Excel: حتى {MAX_FILE_SIZE_MB} ميجابايت — PDF: حتى{" "}
+            {MAX_PDF_SIZE_MB} ميجابايت
           </div>
         </label>
       </div>
+
+      {extracting && (
+        <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          جارٍ استخراج البيانات بالذكاء الاصطناعي...
+        </div>
+      )}
 
       {errors.length > 0 && (
         <div className="rounded-md border border-destructive bg-destructive/10 p-4">
@@ -127,7 +195,8 @@ export function TenderUpload() {
           <ul className="space-y-1 text-sm">
             {errors.map((err, i) => (
               <li key={i}>
-                صف {err.row}: {err.message}
+                {err.row > 0 ? `صف ${err.row}: ` : ""}
+                {err.message}
               </li>
             ))}
           </ul>

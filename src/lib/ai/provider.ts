@@ -51,19 +51,23 @@ export interface AIProvider {
   extractFromPDF(fileBuffer: Buffer, fileName: string): Promise<ExtractionResult>;
 }
 
-export function getAIProvider(): AIProvider {
+export function getAIProvider(preferred?: "gemini" | "groq"): AIProvider {
   if (process.env.MOCK_AI === "true") {
     const { MockProvider } = require("./mock-provider");
     return new MockProvider();
   }
 
-  const provider = process.env.AI_PROVIDER || "gemini";
+  const provider = preferred || process.env.AI_PROVIDER || "gemini";
   const hasGemini = Boolean(process.env.GEMINI_API_KEY);
   const hasGroq = Boolean(process.env.GROQ_API_KEY);
 
   if (provider === "groq" && hasGroq) {
     const { GroqProvider } = require("./groq");
     return new GroqProvider();
+  }
+  if (provider === "gemini" && hasGemini) {
+    const { GeminiProvider } = require("./gemini");
+    return new GeminiProvider();
   }
   if (hasGemini) {
     const { GeminiProvider } = require("./gemini");

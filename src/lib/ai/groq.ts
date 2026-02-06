@@ -38,7 +38,7 @@ export class GroqProvider implements AIProvider {
                 {
                   role: "system",
                   content:
-                    "You are an expert Saudi government tender analyst. Respond with JSON only.",
+                    "أنت خبير تحليل منافسات حكومية سعودية. أجب بـ JSON فقط.",
                 },
                 { role: "user", content: prompt },
               ],

@@ -17,6 +17,6 @@ This folder is intended to hold a **copy** of the 8 Etmam 2.0 context documents 
 - BACKEND.md  
 - FRONTEND.md  
 - IMPLEMENTATION.md  
-- TENDER-STRUCTURE.md  
+- TENDER-STRUCTURE-v3.0-VERIFIED.md  
 
 If this folder is empty, use the primary path above and point agents/reviewers at `docs/PROJECT-LEAD-GUIDE.md` for how to use the context.

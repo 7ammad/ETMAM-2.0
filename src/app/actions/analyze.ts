@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai/provider";
 import { buildAnalysisPrompt } from "@/lib/ai/prompts";
+import { verifyAnalysis, verifyEvidence } from "@/lib/ai/verification";
 import { revalidatePath } from "next/cache";
 
 const DEFAULT_WEIGHTS = {
@@ -55,7 +56,8 @@ export type AnalyzeResult =
 
 export async function analyzeTender(
   tenderId: string,
-  weights: Record<string, number> = DEFAULT_WEIGHTS
+  weights: Record<string, number> = DEFAULT_WEIGHTS,
+  aiProvider?: "gemini" | "groq"
 ): Promise<AnalyzeResult> {
   const supabase = await createClient();
 
@@ -79,17 +81,33 @@ export async function analyzeTender(
   }
 
   const tenderContent = buildTenderContent(tender);
-  const provider = getAIProvider();
+  const provider = getAIProvider(aiProvider);
 
   try {
-    const result = await provider.analyze(tenderContent, weights);
+    const rawResult = await provider.analyze(tenderContent, weights);
+
+    // --- Guardrail 1: Recalculate score & enforce recommendation thresholds ---
+    const { corrected: result, corrections } = verifyAnalysis(
+      rawResult,
+      weights
+    );
+
+    // --- Guardrail 2: Cross-check evidence against source text ---
+    const { verified: checkedEvidence, flagged } = verifyEvidence(
+      result.evidence,
+      tenderContent
+    );
+
+    const allWarnings = [...corrections, ...flagged];
+
     const autoRecommendation = toDbRecommendation(result.recommendation);
     const criteriaScores = {
       scores: result.scores,
-      evidence: result.evidence,
+      evidence: checkedEvidence,
       recommendation_reasoning: result.recommendation_reasoning,
       red_flags: result.red_flags,
       key_dates: result.key_dates,
+      verification_corrections: allWarnings.length > 0 ? allWarnings : undefined,
     } as Record<string, unknown>;
 
     const { data: evalRow, error: evalError } = await supabase
@@ -120,6 +138,7 @@ export async function analyzeTender(
 
     revalidatePath("/tenders");
     revalidatePath(`/tenders/${tenderId}`);
+    revalidatePath("/dashboard");
     return {
       success: true,
       evaluationId: evalRow?.id ?? "",
