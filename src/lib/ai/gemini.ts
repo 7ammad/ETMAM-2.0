@@ -10,6 +10,9 @@ import {
   analysisResponseSchema,
   extractionResponseSchema,
 } from "./parser";
+import { withRetry, withTimeout, classifyError } from "./retry";
+
+const AI_TIMEOUT_MS = 30_000;
 
 export class GeminiProvider implements AIProvider {
   readonly modelName = "gemini-2.5-flash";
@@ -37,12 +40,20 @@ export class GeminiProvider implements AIProvider {
     });
 
     const prompt = buildAnalysisPrompt(tenderContent, weights);
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const json = extractJSON(text);
-    const parsed = analysisResponseSchema.parse(JSON.parse(json));
 
-    return parsed;
+    try {
+      const result = await withRetry(
+        () =>
+          withTimeout(model.generateContent(prompt), AI_TIMEOUT_MS),
+        { maxRetries: 1, baseDelayMs: 2000 }
+      );
+      const text = result.response.text();
+      const json = extractJSON(text);
+      const parsed = analysisResponseSchema.parse(JSON.parse(json));
+      return parsed;
+    } catch (err) {
+      throw classifyError(err);
+    }
   }
 
   async extractFromPDF(
@@ -60,26 +71,35 @@ export class GeminiProvider implements AIProvider {
       },
     });
 
-    const result = await model.generateContent([
-      { text: SECTION_TARGETED_EXTRACTION_PROMPT },
-      {
-        inlineData: {
-          mimeType: "application/pdf",
-          data: fileBuffer.toString("base64"),
-        },
-      },
-    ]);
-
-    const text = result.response.text();
-    const json = extractJSON(text);
-    const parsed = extractionResponseSchema.parse(JSON.parse(json));
-
-    return {
-      ...parsed,
-      description: parsed.description ?? null,
-      cached: false,
-      model_used: this.modelName,
-      processing_time_ms: Date.now() - startTime,
-    };
+    try {
+      const result = await withRetry(
+        () =>
+          withTimeout(
+            model.generateContent([
+              { text: SECTION_TARGETED_EXTRACTION_PROMPT },
+              {
+                inlineData: {
+                  mimeType: "application/pdf",
+                  data: fileBuffer.toString("base64"),
+                },
+              },
+            ]),
+            AI_TIMEOUT_MS
+          ),
+        { maxRetries: 1, baseDelayMs: 2000 }
+      );
+      const text = result.response.text();
+      const json = extractJSON(text);
+      const parsed = extractionResponseSchema.parse(JSON.parse(json));
+      return {
+        ...parsed,
+        description: parsed.description ?? null,
+        cached: false,
+        model_used: this.modelName,
+        processing_time_ms: Date.now() - startTime,
+      };
+    } catch (err) {
+      throw classifyError(err);
+    }
   }
 }

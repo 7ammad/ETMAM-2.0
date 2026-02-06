@@ -6,6 +6,9 @@ import Groq from "groq-sdk";
 import type { AIProvider, AIAnalysisResult, ExtractionResult } from "./provider";
 import { buildAnalysisPrompt } from "./prompts";
 import { extractJSON, analysisResponseSchema } from "./parser";
+import { withRetry, withTimeout, classifyError } from "./retry";
+
+const AI_TIMEOUT_MS = 30_000;
 
 export class GroqProvider implements AIProvider {
   readonly modelName = "llama-3.3-70b-versatile";
@@ -25,26 +28,36 @@ export class GroqProvider implements AIProvider {
   ): Promise<AIAnalysisResult> {
     const prompt = buildAnalysisPrompt(tenderContent, weights);
 
-    const completion = await this.client.chat.completions.create({
-      model: this.modelName,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an expert Saudi government tender analyst. Respond with JSON only.",
-        },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 2000,
-      response_format: { type: "json_object" },
-    });
+    try {
+      const completion = await withRetry(
+        () =>
+          withTimeout(
+            this.client.chat.completions.create({
+              model: this.modelName,
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "You are an expert Saudi government tender analyst. Respond with JSON only.",
+                },
+                { role: "user", content: prompt },
+              ],
+              temperature: 0.3,
+              max_tokens: 2000,
+              response_format: { type: "json_object" },
+            }),
+            AI_TIMEOUT_MS
+          ),
+        { maxRetries: 1, baseDelayMs: 2000 }
+      );
 
-    const text = completion.choices[0]?.message?.content ?? "";
-    const json = extractJSON(text);
-    const parsed = analysisResponseSchema.parse(JSON.parse(json));
-
-    return parsed;
+      const text = completion.choices[0]?.message?.content ?? "";
+      const json = extractJSON(text);
+      const parsed = analysisResponseSchema.parse(JSON.parse(json));
+      return parsed;
+    } catch (err) {
+      throw classifyError(err);
+    }
   }
 
   async extractFromPDF(
