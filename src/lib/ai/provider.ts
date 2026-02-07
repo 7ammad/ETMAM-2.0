@@ -1,7 +1,10 @@
 /**
- * AI provider factory — selects Gemini or Groq based on AI_PROVIDER env var.
+ * AI provider factory — primary: DeepSeek, second: Gemini, fallback: Groq.
+ * Selection: preferred arg, then AI_PROVIDER env, then first available key (deepseek → gemini → groq).
  * Used by API routes for PDF extraction and tender analysis.
  */
+
+import type { ExtractedSections } from "@/types/extracted-sections";
 
 export interface AIAnalysisResult {
   overall_score: number;
@@ -35,6 +38,7 @@ export interface ExtractionResult {
     unit: string | null;
     confidence: number;
   }[];
+  extracted_sections?: ExtractedSections | null;
   confidence: Record<string, number>;
   evidence: Record<string, string | null>;
   overall_confidence: number;
@@ -51,34 +55,45 @@ export interface AIProvider {
   extractFromPDF(fileBuffer: Buffer, fileName: string): Promise<ExtractionResult>;
 }
 
-export function getAIProvider(preferred?: "gemini" | "groq"): AIProvider {
+export type AIProviderId = "deepseek" | "gemini" | "groq";
+
+export async function getAIProvider(preferred?: AIProviderId): Promise<AIProvider> {
   if (process.env.MOCK_AI === "true") {
-    const { MockProvider } = require("./mock-provider");
+    const { MockProvider } = await import("./mock-provider");
     return new MockProvider();
   }
 
-  const provider = preferred || process.env.AI_PROVIDER || "gemini";
+  const provider = (preferred || process.env.AI_PROVIDER || "deepseek") as AIProviderId;
+  const hasDeepSeek = Boolean(process.env.DEEPSEEK_API_KEY?.trim());
   const hasGemini = Boolean(process.env.GEMINI_API_KEY);
   const hasGroq = Boolean(process.env.GROQ_API_KEY);
 
-  if (provider === "groq" && hasGroq) {
-    const { GroqProvider } = require("./groq");
-    return new GroqProvider();
+  if (provider === "deepseek" && hasDeepSeek) {
+    const { DeepSeekProvider } = await import("./deepseek");
+    return new DeepSeekProvider();
   }
   if (provider === "gemini" && hasGemini) {
-    const { GeminiProvider } = require("./gemini");
+    const { GeminiProvider } = await import("./gemini");
     return new GeminiProvider();
   }
+  if (provider === "groq" && hasGroq) {
+    const { GroqProvider } = await import("./groq");
+    return new GroqProvider();
+  }
+  // Fallback order: DeepSeek → Gemini → Groq
+  if (hasDeepSeek) {
+    const { DeepSeekProvider } = await import("./deepseek");
+    return new DeepSeekProvider();
+  }
   if (hasGemini) {
-    const { GeminiProvider } = require("./gemini");
+    const { GeminiProvider } = await import("./gemini");
     return new GeminiProvider();
   }
   if (hasGroq) {
-    const { GroqProvider } = require("./groq");
+    const { GroqProvider } = await import("./groq");
     return new GroqProvider();
   }
 
-  // No API keys — return mock so local dev and tests work without credentials
-  const { MockProvider } = require("./mock-provider");
+  const { MockProvider } = await import("./mock-provider");
   return new MockProvider();
 }

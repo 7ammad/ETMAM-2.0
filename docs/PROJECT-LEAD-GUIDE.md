@@ -4,6 +4,8 @@
 
 **Competition:** EnfraTech | Deadline Sunday Feb 8, 2026 | 3-day build.
 
+**Activity log:** **`docs/CHANGELOG.md`** — Cursor team and Claude Code log all significant work here. Read it first to know what was done and pick up from the latest state.
+
 ---
 
 ## 1. Context Documents (Read First, Code Second)
@@ -75,6 +77,7 @@ The **Cursor Agent Assignments** table in IMPLEMENTATION.md maps **tasks to role
 
 ### In Cursor
 
+- **To coordinate and invoke agents by workflow:** Use **`.cursor/ORCHESTRATOR-DISPATCH-GUIDE.md`**. It lists every agent invocation name (`@project-lead`, `@brainstorming`, `@code-reviewer`, etc.), dispatch tables for each workflow (New Feature, Bug Fix, Architecture Review, UX Improvement, Pre-Launch, Implementation Phase), and concrete prompts per step. Invoke **@project-lead** first with your goal; it outputs **Invoke: @agent** and **Prompt:** for the next step. Then invoke that agent; return to project-lead with the result for the next step.
 - **If you have named agents (e.g. project-lead, senior-full-stack):** Assign the phase to the role in the table; that agent gets the phase prompt + context.
 - **If you don’t:** Use the role name in your prompt, e.g. *“Act as senior-backend. Read BACKEND.md and IMPLEMENTATION.md Phase 1.2. Implement the database schema and RLS.”*
 

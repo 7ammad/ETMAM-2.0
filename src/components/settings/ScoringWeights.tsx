@@ -4,10 +4,10 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { DEFAULT_SCORING_WEIGHTS } from "@/lib/constants";
 
 const FIELDS: { key: keyof typeof DEFAULT_SCORING_WEIGHTS; labelAr: string }[] = [
-  { key: "relevance", labelAr: "التوافق" },
-  { key: "budgetFit", labelAr: "الربحية" },
+  { key: "relevance", labelAr: "التوافق التقني" },
+  { key: "budgetFit", labelAr: "الملاءمة المالية" },
   { key: "timeline", labelAr: "الجدول الزمني" },
-  { key: "competition", labelAr: "المنافسة" },
+  { key: "competition", labelAr: "مستوى المنافسة" },
   { key: "strategic", labelAr: "القيمة الاستراتيجية" },
 ];
 

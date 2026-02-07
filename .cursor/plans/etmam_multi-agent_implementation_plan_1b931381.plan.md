@@ -39,13 +39,13 @@ sequenceDiagram
 
 
 
-| Step           | Who                                   | What (source: WORKFLOW.md)                                                                                                                                    |
-| -------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Read        | Implementer                           | Read phase in IMPLEMENTATION.md + referenced docs (BACKEND, FRONTEND, TECH-STACK, PRD; for AI/extraction phases also TENDER-STRUCTURE-v3.0-VERIFIED.md). Flag doc conflicts.                                                   |
-| 2. Implement   | Primary Agent                         | Implement every task; create all files; no silent skips. Follow BACKEND/FRONTEND/TECH-STACK.                                                                  |
-| 3. Self-check  | Implementer                           | Run phase checklist in [docs/PHASE-COMPLETION-PROTOCOL.md](docs/PHASE-COMPLETION-PROTOCOL.md); run Acceptance Test from IMPLEMENTATION.md; fix every failure. |
-| 4. Hard review | **code-reviewer** (never implementer) | Run [docs/HARD-REVIEW-CHECKLIST.md](docs/HARD-REVIEW-CHECKLIST.md). Output "Sign-off: phase complete" or "Blocked: [list]".                                   |
-| 5. Sign-off    | You (Hammad) or project-lead          | Confirm Hard Review passed; mark phase complete; proceed to next phase.                                                                                       |
+| Step           | Who                                   | What (source: WORKFLOW.md)                                                                                                                                                   |
+| -------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Read        | Implementer                           | Read phase in IMPLEMENTATION.md + referenced docs (BACKEND, FRONTEND, TECH-STACK, PRD; for AI/extraction phases also TENDER-STRUCTURE-v3.0-VERIFIED.md). Flag doc conflicts. |
+| 2. Implement   | Primary Agent                         | Implement every task; create all files; no silent skips. Follow BACKEND/FRONTEND/TECH-STACK.                                                                                 |
+| 3. Self-check  | Implementer                           | Run phase checklist in [docs/PHASE-COMPLETION-PROTOCOL.md](docs/PHASE-COMPLETION-PROTOCOL.md); run Acceptance Test from IMPLEMENTATION.md; fix every failure.                |
+| 4. Hard review | **code-reviewer** (never implementer) | Run [docs/HARD-REVIEW-CHECKLIST.md](docs/HARD-REVIEW-CHECKLIST.md). Output "Sign-off: phase complete" or "Blocked: [list]".                                                  |
+| 5. Sign-off    | You (Hammad) or project-lead          | Confirm Hard Review passed; mark phase complete; proceed to next phase.                                                                                                      |
 
 
 **Rule:** If the reviewer returns Blocked, the phase is not complete. Fix the list and re-run Hard Review.

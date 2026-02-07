@@ -25,34 +25,34 @@ Saudi businesses competing for government tenders through Etimad (اعتماد) 
 1. **Tender data is scattered** — Competition information sits in Etimad, PDFs, emails, and spreadsheets with no central view.
 2. **Evaluation is subjective** — No standardized method to score whether a tender is worth pursuing before investing time.
 3. **Cost estimation is manual** — Building cost breakdowns from specifications requires manually identifying every required product and service, then pricing each line item.
-4. **CRM is disconnected** — Qualified opportunities are tracked in spreadsheets instead of flowing automatically into Odoo CRM.
+4. **CRM is disconnected** — Qualified opportunities are tracked in spreadsheets instead of flowing automatically into Odoo CRM (EnfraTech’s CRM system).
 
 ---
 
 ## Solution
 
-Etmam is an AI-powered tender management tool that takes tender data (from CSV/Excel or PDF), evaluates it, estimates costs, and pushes qualified opportunities into Odoo CRM.
+Etmam is an AI-powered tender management tool that: gets tender data from two equally important sources (CSV/Excel and PDF), analyzes all data, produces evaluation, creates an Odoo CRM opportunity, then supports two equally important outputs — push to Odoo via .env integration and manual extraction (Excel / manual entry).
 
 ### Core Flow
 ```
 Setup: Upload Company Profile + Rate Cards (once)
   ↓
-Input (CSV/Excel or PDF) → AI Analysis & Extraction → Evaluation (0-100, custom criteria & weights) → Cost Estimator (uses rate cards) → CRM Export (Odoo or Excel)
+Input (CSV/Excel or PDF) → AI Analysis & Extraction → Cost Estimator (uses rate cards) → Evaluation (0-100, custom criteria & weights; Profit Potential uses bid price) → Push to Odoo (via .env) and/or manual extraction (Excel)
 ```
 
-### Architecture: Two Input Paths
+### Architecture: Two Equally Important Input Sources
 
-**Path A — Base (Required, Must Work 100%)**
+**Path A — CSV/Excel**
 ```
-CSV/Excel Upload → Parse & Structure → Evaluate → Cost Estimate → Export to Odoo/Excel
+CSV/Excel Upload → Parse & Structure → Cost Estimate → Evaluate → Push to Odoo (via .env) and Excel/manual extraction
 ```
-This is the safe path. It directly meets competition requirements. Manual data entry as fallback.
+Required. Both input sources must be in the pipeline.
 
-**Path B — AI Enhancement (Differentiator)**
+**Path B — PDF (كراسة الشروط)**
 ```
-PDF Upload (كراسة الشروط) → Gemini AI Extraction → Same pipeline as Path A
+PDF Upload → Gemini AI Extraction → Same pipeline as Path A
 ```
-This is the wow factor. AI reads the Arabic RFP document and auto-extracts structured data, then feeds into the same evaluation and costing pipeline.
+Required. AI reads the Arabic RFP and extracts structured data, then feeds into the same evaluation and costing pipeline. Equally important with CSV/Excel — not an enhancement or fallback.
 
 ---
 
@@ -60,9 +60,9 @@ This is the wow factor. AI reads the Arabic RFP document and auto-extracts struc
 
 | # | Requirement | Our Approach |
 |---|-----------|--------------|
-| 1 | Fetch tender data from Etimad, or start with Excel/CSV | Both: CSV/Excel as base + AI PDF extraction as enhancement |
+| 1 | Fetch tender data from Etimad, or start with Excel/CSV | CSV/Excel and PDF — both equally important input sources, both in the pipeline |
 | 2 | Evaluate each tender with adjustable model (0-100 score + brief reasons) | Simple scoring system with configurable criteria and weights |
-| 3 | Auto-create CRM opportunity with required fields | Odoo API integration (configurable via .env) + Excel export as fallback |
+| 3 | Auto-create CRM opportunity with required fields | Push to Odoo via .env integration and manual extraction (Excel) — both equally important features |
 | 4 | Simple screen showing tenders and evaluation results | Dashboard with tender list, scores, and status |
 
 ### Required CRM Fields (from competition brief)
@@ -78,10 +78,10 @@ This is the wow factor. AI reads the Arabic RFP document and auto-extracts struc
 
 ## Feature Set
 
-### 1. Dual-Mode Tender Input
-**Base Mode:** Upload CSV/Excel with tender data (columns matching required fields)
-**AI Mode:** Upload كراسة الشروط PDF → Gemini Flash extracts and structures all data automatically
-**Manual Entry:** Form-based input as fallback
+### 1. Tender Input (two equally important sources)
+**CSV/Excel:** Upload CSV/Excel with tender data (columns matching required fields). Required; equally important with PDF.
+**PDF:** Upload كراسة الشروط PDF → Gemini Flash extracts and structures all data automatically. Required; equally important with CSV/Excel.
+**Manual Entry:** Form-based input when no file is available.
 
 ### 2. Company Profile & Rate Cards Upload
 - Upload company capabilities document (what services/products they offer)
@@ -91,7 +91,7 @@ This is the wow factor. AI reads the Arabic RFP document and auto-extracts struc
 - This ensures cost estimates use REAL internal/disti pricing, not retail web prices that could lose a tender
 - Multiple rate cards supported (different distis, different product lines)
 
-### 3. AI-Powered Tender Analysis (Path B Enhancement)
+### 3. AI-Powered Tender Analysis (PDF path)
 - Reads full Arabic PDF documents
 - Extracts: title, reference number, entity, deadline, specifications, requirements, eligibility, financial requirements
 - Matches extracted requirements against uploaded company capabilities
@@ -122,13 +122,9 @@ This is the wow factor. AI reads the Arabic RFP document and auto-extracts struc
 - Real-time total calculation
 - Highlights items where no rate card match was found (needs manual pricing)
 
-### 6. CRM Integration
-- **Primary:** Odoo API integration — auto-creates opportunity records
-  - Configurable via .env (ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_API_KEY)
-  - Maps all required fields to Odoo opportunity model
-- **Fallback:** Excel export formatted for Odoo import
-  - Always available regardless of Odoo configuration
-  - Includes all required fields + cost breakdown + evaluation
+### 6. CRM Integration (two equal features)
+- **Push to Odoo:** EnfraTech’s CRM. Create opportunity with required fields and push via .env (ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_API_KEY). All competition-required CRM fields mapped; duplicate detection by tender number.
+- **Manual extraction:** Excel export with all required CRM fields, or manual entry. Includes all required fields + cost breakdown + evaluation. Equally important — not a fallback.
 
 ---
 
@@ -139,7 +135,7 @@ This is the wow factor. AI reads the Arabic RFP document and auto-extracts struc
 **User Profile:**
 - Business development managers, procurement officers, company owners
 - Arabic-speaking, working with Arabic-language RFP documents
-- Use Odoo for CRM/pipeline tracking
+- Use Odoo for CRM (EnfraTech’s system); need tender opportunities in Odoo
 - Need speed and accuracy in tender evaluation
 
 ---
@@ -158,13 +154,13 @@ What takes a procurement team hours manually, Etmam does in minutes:
 
 ## Key Differentiators
 
-1. **Dual Input** — Works with simple CSV/Excel AND intelligent PDF extraction
+1. **Dual Input** — CSV/Excel and PDF (كراسة الشروط) — both equally important, both required in the pipeline
 2. **Arabic-First AI** — Built specifically for Saudi government tender documents
 3. **Real Pricing, Not Guesswork** — Uses uploaded company & distributor rate cards for cost estimation, not web-scraped retail prices
 4. **Your Evaluation, Your Rules** — Fully customizable scoring criteria and weights, not a one-size-fits-all model
 5. **End-to-End** — Not just extraction OR evaluation — the complete tender-to-CRM pipeline
 6. **Configurable** — Rate cards, evaluation criteria, cost categories, and CRM connection all adjustable
-7. **Production-Ready Architecture** — .env configuration means it connects to any Odoo instance
+7. **Production-Ready Architecture** — .env configuration for AI providers and Odoo (EnfraTech’s CRM)
 
 ---
 
@@ -173,7 +169,7 @@ What takes a procurement team hours manually, Etmam does in minutes:
 - **Frontend:** Next.js (latest stable) + shadcn/ui + Tailwind CSS
 - **Backend:** Next.js API routes + Supabase (PostgreSQL + Auth + Storage)
 - **AI Engine:** Google Gemini Flash (free tier — Arabic PDF analysis)
-- **CRM:** Odoo XML-RPC API (configurable) + SheetJS Excel export (fallback)
+- **CRM:** Odoo (push via .env) + manual extraction (SheetJS Excel export)
 - **Language:** Full Arabic RTL support
 
 ---
@@ -182,8 +178,8 @@ What takes a procurement team hours manually, Etmam does in minutes:
 
 | Criteria | How We Address It |
 |----------|------------------|
-| End-to-end workflow (input → CRM opportunity) | Complete pipeline with both input paths |
-| Ease of operation and reliability | Simple UI, clear flow, Excel fallback ensures reliability |
+| End-to-end workflow (input → CRM opportunity) | Tender → evaluate → Odoo CRM opportunity (push via .env) + both input paths |
+| Ease of operation and reliability | Simple UI, clear flow; push to Odoo and manual extraction both supported |
 | Clear and adjustable evaluation logic | Configurable scoring with transparent criteria and weights |
 | Clear setup and operation documentation | Setup guide with .env configuration instructions |
 | Minimum security and credential protection | .env for secrets, Supabase auth, no hardcoded keys |
@@ -196,4 +192,4 @@ What takes a procurement team hours manually, Etmam does in minutes:
 - **Budget:** Zero — free tier APIs and tools only
 - **Scope:** Competition MVP — functional demo, not production-scale
 - **AI:** Google Gemini Flash free tier (rate limits apply)
-- **CRM:** Odoo integration via .env — judges provide their own credentials or see Excel export
+- **CRM:** Odoo push via .env (EnfraTech’s CRM) and manual extraction (Excel) — both required features.

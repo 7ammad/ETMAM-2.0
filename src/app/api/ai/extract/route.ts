@@ -56,7 +56,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const provider = getAIProvider();
+    // PDF extraction requires vision/model that accepts PDF; use Gemini (Groq does not support PDF)
+    const provider = await getAIProvider("gemini");
     const rawExtraction = await provider.extractFromPDF(buffer, file.name);
 
     // --- Guardrail: verify extraction sanity (confidence, dates, values) ---
@@ -70,13 +71,16 @@ export async function POST(request: NextRequest) {
       fileName: file.name,
     });
   } catch (err) {
+    console.error("[extract/route] Extraction failed:", err);
     const message = err instanceof Error ? err.message : String(err);
+    const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : undefined;
     return NextResponse.json(
       {
         success: false,
         error: message.includes("مفتاح")
           ? message
           : "فشل استخراج البيانات من الملف: " + message,
+        errorCode: code,
       },
       { status: 500 }
     );

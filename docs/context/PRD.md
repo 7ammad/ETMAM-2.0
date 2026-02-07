@@ -1,17 +1,18 @@
 # Etmam 2.0 — Product Requirements Document (PRD)
 
 ## Document Info
-- **Version:** 2.0
-- **Last Updated:** February 5, 2026
+- **Version:** 2.1
+- **Last Updated:** February 7, 2026
 - **Author:** Hammad
 - **Status:** Active — 3-Day Sprint
+- **Change Log:** v2.1 — All features P0, auth corrected, extraction schema aligned to 12-section template, CRM: Odoo push + manual extraction (both equal)
 - **Reference:** See IDEA.md for full context
 
 ---
 
 ## 1. Executive Summary
 
-Etmam is an AI-powered tender management MVP for the EnfraTech competition. It takes tender data (CSV/Excel or Arabic PDF), analyzes and evaluates it, estimates costs using uploaded rate cards, and exports qualified opportunities to Odoo CRM or Excel.
+Etmam is an AI-powered tender management MVP for the EnfraTech competition. It takes tender data from two equally important sources (CSV/Excel and Arabic PDF), analyzes and evaluates it, estimates costs using uploaded rate cards, and supports two equally important CRM outputs: push to Odoo (EnfraTech’s CRM) via .env integration and manual extraction (Excel export).
 
 **Build Window:** Thursday Feb 5 → Sunday Feb 8 (3 days)
 **Demo:** 10-minute live presentation on Sunday
@@ -24,7 +25,7 @@ Etmam is an AI-powered tender management MVP for the EnfraTech competition. It t
 - Works at a mid-size Saudi company bidding on Etimad tenders
 - Reviews 10-15 tenders per month
 - Currently uses Excel to track everything
-- Has Odoo CRM but rarely updates it because it's manual
+- Uses Odoo (EnfraTech’s CRM); needs tenders pushed there or exported for manual entry
 - Receives monthly rate cards from 3-4 distributors as Excel files
 - Arabic-speaking, uses Windows, moderate tech literacy
 
@@ -40,16 +41,16 @@ Etmam is an AI-powered tender management MVP for the EnfraTech competition. It t
 
 ### Priority Legend
 - **P0 — Must work for demo.** If this breaks, demo fails.
-- **P1 — Should work for demo.** Impressive but survivable if missing.
-- **P2 — Nice to have.** Only if time permits.
+
+> **Note:** All features are P0. Per IDEA.md, every feature is part of the end-to-end pipeline: Input → AI Analysis → **Cost Estimation** → **Evaluation** → CRM Export. There are no P1 or P2 features.
 
 ---
 
-### Feature 1: Dual-Mode Tender Input
-**Priority:** P0
+### Feature 1: Tender Input (CSV/Excel + PDF, both P0)
+**Priority:** P0 — CSV/Excel and PDF are equally important input sources; both must be in the pipeline.
 
-#### 1A: CSV/Excel Upload (P0 — Build First)
-**Description:** User uploads a CSV or Excel file containing tender data. System parses and structures it.
+#### 1A: CSV/Excel Upload (P0)
+**Description:** User uploads a CSV or Excel file containing tender data. System parses and structures it. Equally important with PDF input — both sources must be in the pipeline.
 
 **Input Format (expected columns):**
 | Column (Arabic) | Column (English) | Type | Required |
@@ -72,8 +73,8 @@ Etmam is an AI-powered tender management MVP for the EnfraTech competition. It t
 - [ ] Error state: clear message if file format is wrong or required columns missing
 - [ ] Loading state while parsing
 
-#### 1B: Manual Entry Form (P0 — Fallback)
-**Description:** User enters tender data manually via a form.
+#### 1B: Manual Entry Form (P0)
+**Description:** User enters tender data manually via a form when no file (CSV/Excel or PDF) is available.
 
 **Acceptance Criteria:**
 - [ ] Form with all fields from the table above
@@ -82,50 +83,108 @@ Etmam is an AI-powered tender management MVP for the EnfraTech competition. It t
 - [ ] "Add Tender" button saves to the system
 - [ ] Can add multiple tenders one at a time
 
-#### 1C: PDF Upload with AI Extraction (P1 — Differentiator)
-**Description:** User uploads a كراسة الشروط PDF. Gemini Flash AI reads and extracts structured data.
+#### 1C: PDF Upload with AI Extraction (P0)
+**Description:** User uploads a كراسة الشروط PDF. Gemini Flash AI reads and extracts structured data. Equally important with CSV/Excel input — both sources must be in the pipeline.
 
 **Acceptance Criteria:**
 - [ ] Upload .pdf file via drag-and-drop or file picker
 - [ ] PDF sent to Gemini Flash API with structured extraction prompt
 - [ ] Extracted data presented in the same table format as CSV upload
 - [ ] User can review and edit extracted data before confirming
-- [ ] Works with Arabic PDFs (the primary use case)
+- [ ] Works with Arabic PDFs (كراسة الشروط)
 - [ ] Works with scanned PDFs (Gemini handles OCR natively)
 - [ ] Loading state with progress indication ("Analyzing document...")
 - [ ] Error handling: graceful failure if AI extraction fails, with option to enter manually
 - [ ] Max file size: 20MB (Gemini limit)
 
 **AI Extraction Prompt Requirements:**
-The AI must extract and return JSON with:
+The AI must extract and return JSON with (schema aligned to TENDER-STRUCTURE-v3.0-VERIFIED.md, 12 sections):
 ```json
 {
-  "entity": "الجهة المصدرة",
-  "tender_title": "عنوان المنافسة",
-  "tender_number": "رقم المنافسة",
-  "deadline": "2026-03-15",
-  "estimated_value": 500000,
-  "description": "وصف مختصر",
-  "requirements": ["متطلب 1", "متطلب 2"],
-  "specifications": ["مواصفة 1", "مواصفة 2"],
-  "eligibility_criteria": ["شرط 1", "شرط 2"],
-  "financial_requirements": {
-    "guarantee": "ضمان ابتدائي 2%",
-    "payment_terms": "شروط الدفع"
+  "_meta": {
+    "extraction_model": "gemini-2.5-flash",
+    "confidence": 85,
+    "sections_found": [1, 5, 6, 7, 8, 9],
+    "sections_missing": [2, 3, 4, 10, 11, 12],
+    "warnings": []
   },
-  "submission_requirements": ["مستند 1", "مستند 2"],
-  "line_items": [
-    {"item": "بند 1", "quantity": 10, "unit": "وحدة", "specs": "المواصفات"}
-  ]
+  "section_1_introduction": {
+    "entity": "الجهة الحكومية",
+    "tender_number": "رقم الكراسة",
+    "tender_title": "اسم المنافسة",
+    "document_purchase_fee": null,
+    "dates": {
+      "document_issue": "DD/MM/YYYY",
+      "questions_deadline": "DD/MM/YYYY",
+      "bid_submission_deadline": "DD/MM/YYYY",
+      "bid_opening": "DD/MM/YYYY",
+      "award_date": "DD/MM/YYYY",
+      "work_start": "DD/MM/YYYY"
+    },
+    "required_licenses": [],
+    "entity_representative": {
+      "name": "", "position": "", "phone": "", "email": ""
+    }
+  },
+  "section_5_evaluation": {
+    "evaluation_method": "أقل سعر | الجودة والتكلفة",
+    "financial_weight": null,
+    "technical_weight": null,
+    "scoring_formula": "EXTRACT VERBATIM",
+    "local_content_target": null,
+    "minimum_technical_score": null,
+    "price_cap_rule": null
+  },
+  "section_6_contract": {
+    "performance_guarantee_percent": null,
+    "advance_payment_guarantee_percent": null,
+    "penalty_delay_per_day": null,
+    "penalty_max_percent": null,
+    "payment_terms": null,
+    "insurance_requirements": []
+  },
+  "section_7_scope": {
+    "duration": "",
+    "location": { "city": "", "region": "" },
+    "bill_of_quantities": [
+      {
+        "item_number": 1,
+        "category": "",
+        "item_name": "",
+        "unit": "",
+        "description": "",
+        "quantity": 0,
+        "specs_reference": ""
+      }
+    ]
+  },
+  "section_8_specifications": {
+    "team_requirements": [],
+    "materials": [],
+    "equipment": [],
+    "quality_standards": [],
+    "execution_methodology": null
+  },
+  "section_9_local_content": {
+    "target_percentage": null,
+    "mandatory_items": [],
+    "calculation_method": null,
+    "penalties": null
+  },
+  "estimated_value": null,
+  "description": "",
+  "requirements": [],
+  "eligibility_criteria": [],
+  "submission_requirements": []
 }
 ```
 
 ---
 
 ### Feature 2: Company Profile & Rate Cards
-**Priority:** P1
+**Priority:** P0
 
-#### 2A: Rate Card Upload (P1)
+#### 2A: Rate Card Upload (P0)
 **Description:** User uploads their own service rate cards and distributor rate cards as Excel/CSV files. These are stored and used by the Cost Estimator.
 
 **Rate Card Format (expected):**
@@ -147,7 +206,7 @@ The AI must extract and return JSON with:
 - [ ] Rate card items searchable by the Cost Estimator
 - [ ] If no rate cards uploaded, Cost Estimator works with manual entry only
 
-#### 2B: Company Capabilities (P2)
+#### 2B: Company Capabilities (P0)
 **Description:** User uploads or enters their company's service/product capabilities.
 
 **Acceptance Criteria:**
@@ -159,7 +218,7 @@ The AI must extract and return JSON with:
 ---
 
 ### Feature 3: AI-Powered Tender Analysis
-**Priority:** P1 (depends on Feature 1C)
+**Priority:** P0 (extends Feature 1C extraction)
 
 **Description:** After PDF extraction, AI provides deeper analysis beyond raw field extraction.
 
@@ -203,11 +262,11 @@ The system ships with these default criteria (user can modify):
   - 🟢 70-100: "Recommended — تقدم"
   - 🟡 40-69: "Review — مراجعة"  
   - 🔴 0-39: "Skip — تجاوز"
-- [ ] Brief auto-generated reasoning based on individual scores
+- [ ] Brief auto-generated reasoning based on individual scores (when bid price exists from Cost Estimator, Profit Potential and reasoning may use it)
 - [ ] User can override the recommendation manually
 - [ ] Criteria presets can be saved and loaded for reuse
 
-#### 4C: AI-Assisted Scoring (P2)
+#### 4C: AI-Assisted Scoring (P0)
 **Acceptance Criteria:**
 - [ ] If tender was uploaded via PDF (Feature 1C), AI can suggest scores per criterion
 - [ ] AI scoring is a suggestion — user always has final say
@@ -252,7 +311,7 @@ CostItem {
 - [ ] Final price = grand total + profit margin
 - [ ] Highlight items with no rate card match in yellow (needs manual pricing)
 
-#### 5B: Rate Card Matching (P1)
+#### 5B: Rate Card Matching (P0)
 **Acceptance Criteria:**
 - [ ] When generating cost items from tender requirements, system searches uploaded rate cards
 - [ ] If match found: auto-fill unit price from rate card, mark source as "rate_card"
@@ -260,7 +319,7 @@ CostItem {
 - [ ] If no match: leave unit price empty, mark source as "manual", highlight yellow
 - [ ] User can override any rate card price
 
-#### 5C: AI Cost Generation (P1)
+#### 5C: AI Cost Generation (P0)
 **Acceptance Criteria:**
 - [ ] If tender uploaded via PDF, AI suggests cost line items based on extracted requirements
 - [ ] AI-suggested items marked with source "ai_suggested"
@@ -283,8 +342,8 @@ CostItem {
 ### Feature 6: CRM Integration & Export
 **Priority:** P0
 
-#### 6A: Excel Export (P0 — Must Work)
-**Description:** Export tender data + evaluation + cost estimate as a formatted Excel file.
+#### 6A: Manual Extraction — Excel Export (P0)
+**Description:** Export tender data + evaluation + cost estimate as a formatted Excel file. Equally important with push to Odoo; not a fallback.
 
 **Excel Output Structure:**
 Sheet 1 — Tender Overview:
@@ -313,39 +372,31 @@ Sheet 3 — Cost Breakdown:
 - [ ] File downloads immediately as .xlsx
 - [ ] Arabic headers and content properly formatted
 - [ ] File named: `Etmam_[TenderNumber]_[Date].xlsx`
-- [ ] Works regardless of whether Odoo is configured
+- [ ] Works standalone (no Odoo required for this feature)
 
-#### 6B: Odoo CRM Integration (P1)
-**Description:** Push qualified tenders directly to Odoo as CRM opportunities.
+#### 6B: Push to Odoo CRM (P0)
+**Description:** Push qualified tenders to Odoo (EnfraTech’s CRM) as opportunities via .env integration (ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_API_KEY). Equally important with manual extraction; not a fallback.
 
-**Configuration (.env):**
-```
-ODOO_URL=https://your-instance.odoo.com
-ODOO_DB=your_database
-ODOO_USERNAME=your_email
-ODOO_API_KEY=your_api_key
-```
-
-**Odoo Field Mapping:**
-| Etmam Field | Odoo Field | Odoo Model |
+**CRM Field Mapping (Etmam → Odoo opportunity):**
+| Etmam Field | Odoo Field | Notes |
 |---|---|---|
-| tender_title | name | crm.lead |
-| entity | partner_id (lookup/create) | res.partner |
-| estimated_value | expected_revenue | crm.lead |
-| deadline | date_deadline | crm.lead |
-| tender_number | ref | crm.lead |
-| evaluation_score | priority (mapped) | crm.lead |
-| recommendation | description (appended) | crm.lead |
-| bid_price | planned_revenue | crm.lead |
+| tender_title | name | Display title |
+| entity | entity | Issuing body |
+| estimated_value | value | Expected revenue |
+| deadline | deadline | Bid deadline |
+| tender_number | ref | Tender reference |
+| evaluation_score | score | Mapped to priority |
+| recommendation | recommendation | Go/No-Go |
+| bid_price | bid_price | From cost estimator |
 
 **Acceptance Criteria:**
 - [ ] "Push to Odoo" button on tender detail page
-- [ ] "Push All Qualified" button on dashboard (only tenders scored 70+)
-- [ ] Connection test button in settings (verifies .env credentials)
-- [ ] Success confirmation with link to created Odoo opportunity
-- [ ] Error handling: if Odoo is not configured or unreachable, show message and offer Excel export
+- [ ] "Push All Qualified" button on dashboard (only tenders scored 70+; creates opportunities in Odoo)
+- [ ] Connection test on .env (show clear message if Odoo not configured)
+- [ ] All competition-required CRM fields mapped to Odoo opportunity
+- [ ] Success confirmation after push
+- [ ] Error handling: if push fails, show message; Excel export still available (equal feature)
 - [ ] Duplicate detection: warn if tender number already exists in Odoo
-- [ ] If Odoo entity (partner) doesn't exist, create it automatically
 
 ---
 
@@ -361,7 +412,7 @@ ODOO_API_KEY=your_api_key
 - All API keys and credentials in .env (never in code)
 - .env in .gitignore
 - Supabase RLS enabled on all tables
-- No authentication required for MVP (single user demo)
+- Supabase email/password authentication required (competition requirement)
 - HTTPS in production deployment
 
 ### Language & UI
@@ -372,10 +423,10 @@ ODOO_API_KEY=your_api_key
 - Responsive but desktop-first (demo will be on laptop)
 
 ### Reliability
-- Excel export ALWAYS works (no external dependencies)
-- If AI fails, manual entry remains available
-- If Odoo is not configured, Excel export is the default
-- Every feature has a manual fallback path
+- Excel export (manual extraction) ALWAYS works (no external dependencies)
+- Push to Odoo works when .env is configured; both push and manual extraction are required features
+- If AI fails, manual entry remains available for input
+- Every feature has a manual fallback path where applicable
 
 ---
 
@@ -390,7 +441,7 @@ ODOO_API_KEY=your_api_key
 ├── /settings
 │   ├── Rate Cards management
 │   ├── Evaluation Criteria presets
-│   └── Odoo Configuration
+│   └── Odoo / CRM configuration
 └── /export (Batch export)
 ```
 
@@ -401,18 +452,18 @@ ODOO_API_KEY=your_api_key
 - Quick action buttons: Upload, Export All
 
 ### Tender Detail (/tenders/[id])
-- Tabs or sections:
+- Tabs or sections (order: Cost before Evaluation so score can use estimated value):
   1. **Overview** — all extracted/entered data
-  2. **Evaluation** — scoring with criteria sliders
-  3. **Cost Estimate** — line items table
-  4. **Export** — Excel download + Odoo push buttons
+  2. **Cost Estimate** — line items table, rate card matching, bid price
+  3. **Evaluation** — scoring with criteria sliders (Profit Potential uses bid price when available)
+  4. **Export** — Excel download + push to Odoo buttons (both equal)
 
 ---
 
 ## 6. Build Schedule
 
 ### Day 1 — Thursday (Foundation + Core Pipeline)
-**Goal:** Upload CSV → See tenders → Basic evaluation → Excel export works end-to-end
+**Goal:** CSV/Excel and PDF paths both work; see tenders → basic evaluation → Excel export works end-to-end
 
 | Time Block | Task | Feature | Priority |
 |---|---|---|---|
@@ -425,23 +476,23 @@ ODOO_API_KEY=your_api_key
 | Evening | Excel export (all 3 sheets) | F6A | P0 |
 | Evening | Test full pipeline end-to-end | QA | P0 |
 
-**Day 1 Checkpoint:** Can you upload a CSV, see tenders, score them, and download an Excel file? If yes → Day 1 passed.
+**Day 1 Checkpoint:** CSV/Excel path: upload file, see tenders, score them, download Excel. Day 2 adds PDF path. Both input sources must be in the pipeline for demo.
 
 ### Day 2 — Friday (Enhancement + Intelligence)
 **Goal:** Add AI PDF extraction, rate cards, custom evaluation, cost estimator
 
 | Time Block | Task | Feature | Priority |
 |---|---|---|---|
-| Morning | PDF upload + Gemini AI extraction | F1C | P1 |
-| Morning | AI extraction prompt engineering + testing | F1C | P1 |
-| Midday | Rate card upload + storage | F2A | P1 |
+| Morning | PDF upload + Gemini AI extraction | F1C | P0 |
+| Morning | AI extraction prompt engineering + testing | F1C | P0 |
+| Midday | Rate card upload + storage | F2A | P0 |
 | Midday | Cost estimator with line items | F5A | P0 |
-| Afternoon | Rate card matching in cost estimator | F5B | P1 |
+| Afternoon | Rate card matching in cost estimator | F5B | P0 |
 | Afternoon | Custom evaluation criteria + weights | F4B | P0 |
-| Evening | Odoo CRM integration | F6B | P1 |
-| Evening | Test full pipeline with AI path | QA | P1 |
+| Evening | Odoo CRM integration (push via .env) | F6B | P0 |
+| Evening | Test full flow with AI path | QA | P0 |
 
-**Day 2 Checkpoint:** Can you upload a PDF, get AI extraction, score with custom criteria, build a cost estimate with rate card prices, and push to Odoo? If yes → Day 2 passed.
+**Day 2 Checkpoint:** Can you upload a PDF, get AI extraction, score with custom criteria, build a cost estimate with rate card prices, and push to Odoo and/or export to Excel? If yes → Day 2 passed.
 
 ### Day 3 — Saturday (Polish + Demo Prep)
 **Goal:** UI polish, edge cases, demo rehearsal, documentation
@@ -450,8 +501,8 @@ ODOO_API_KEY=your_api_key
 |---|---|---|---|
 | Morning | Dashboard with summary stats | Nav | P0 |
 | Morning | UI polish — RTL fixes, loading states, error states | UI | P0 |
-| Midday | AI-assisted scoring (P2) + AI cost suggestions (P2) | F4C, F5C | P2 |
-| Midday | Company capabilities upload | F2B | P2 |
+| Midday | AI-assisted scoring (P0) + AI cost suggestions (P0) | F4C, F5C | P0 |
+| Midday | Company capabilities upload | F2B | P0 |
 | Afternoon | Setup guide documentation | Deliverable | P0 |
 | Afternoon | Fix any remaining bugs | QA | P0 |
 | Evening | Demo rehearsal with Salman | Deliverable | P0 |
@@ -464,21 +515,21 @@ ODOO_API_KEY=your_api_key
 ## 7. Demo Script (10 Minutes)
 
 **Minute 0-1:** Problem statement — how tenders are managed today (manual, slow, disconnected)
-**Minute 1-2:** Etmam overview — the pipeline from file to CRM opportunity
+**Minute 1-2:** Etmam overview — from file to CRM opportunity (push to Odoo + Excel)
 **Minute 2-4:** Live demo — upload a real كراسة شروط PDF → show AI extraction
 **Minute 4-5:** Live demo — upload rate cards → show how prices auto-populate
 **Minute 5-7:** Live demo — evaluate the tender with custom criteria → show score + recommendation
 **Minute 7-8:** Live demo — cost estimator with rate card matching
-**Minute 8-9:** Live demo — export to Excel AND push to Odoo
+**Minute 8-9:** Live demo — export to Excel AND push to Odoo (both features)
 **Minute 9-10:** Summary + what's next (roadmap for production version)
 
-**Backup plan:** If AI extraction fails during demo, switch to CSV upload path immediately. The judges see the full pipeline regardless.
+**Demo both inputs:** Show CSV/Excel upload and PDF upload as two equally important paths. If one fails during demo, show the other; both must be present and working.
 
 ---
 
 ## 8. Out of Scope (NOT building for MVP)
 
-- User authentication / multi-user support
+- Advanced multi-user support (roles, permissions, teams)
 - Direct Etimad API integration (scraping/API)
 - Historical tender analytics or reporting
 - Arabic NLP / sentiment analysis
@@ -496,7 +547,7 @@ ODOO_API_KEY=your_api_key
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Gemini AI extraction is inaccurate on Arabic PDFs | Demo looks bad | Test with 3+ real كراسات شروط before Sunday. Always show editable results. |
-| Odoo API connection fails during demo | Missing a feature | Excel export always works. Show Odoo config and explain. |
+| Odoo push fails during demo | Missing a feature | Excel export always works. Show Odoo field mapping and explain. |
 | Rate card format varies wildly | Parsing breaks | Define a template format. Provide a sample rate card file. |
 | 3 days is not enough | Incomplete MVP | P0 features on Day 1. If Day 1 checkpoint passes, we have a working demo. |
 | Gemini free tier rate limits | AI stops working mid-demo | Cache AI results. Only call API once per PDF, store result. |
@@ -507,8 +558,8 @@ ODOO_API_KEY=your_api_key
 
 | Metric | Target |
 |---|---|
-| End-to-end pipeline works | Upload → Evaluate → Cost → Export in one demo flow |
+| End-to-end pipeline works | Upload → Cost → Evaluate → Export in one demo flow |
 | Demo runs without crashes | Zero errors during 10-minute presentation |
-| All required CRM fields exported | 7/7 fields present in Excel and Odoo |
+| All required CRM fields exported | 7/7 fields present in Excel and in Odoo (when pushed) |
 | Evaluation is adjustable | Judges can see criteria and weights being changed live |
 | Setup guide is clear | Someone can run the app following the guide in < 10 minutes |

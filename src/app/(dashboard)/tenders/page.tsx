@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { TenderListClient } from "@/components/tender/TenderListClient";
+import { BatchExportActions } from "@/components/export/BatchExportActions";
 
 export default async function TendersPage() {
   const supabase = await createClient();
@@ -20,14 +20,9 @@ export default async function TendersPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-foreground">المنافسات</h1>
-        <Link
-          href="/tenders/upload"
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-gold-600"
-        >
-          رفع منافسات
-        </Link>
+        <BatchExportActions />
       </div>
 
       <TenderListClient initialTenders={tenders ?? []} />

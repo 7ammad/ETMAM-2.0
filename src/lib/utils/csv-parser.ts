@@ -10,7 +10,7 @@ export interface ParsedTender {
   tender_title: string;
   tender_number: string;
   deadline: string;
-  estimated_value: number;
+  estimated_value?: number;
   description?: string;
   requirements?: string;
   tender_url?: string;
@@ -48,7 +48,6 @@ const REQUIRED_FIELDS: (keyof ParsedTender)[] = [
   "tender_title",
   "tender_number",
   "deadline",
-  "estimated_value",
 ];
 
 function normalizeHeader(header: string): keyof ParsedTender | null {

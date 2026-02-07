@@ -1,9 +1,9 @@
 # IMPLEMENTATION.md — Etmam 2.0 Build Plan
 
-> AI-Powered Tender Management System
-> Competition: EnfraTech | Deadline: Sunday Feb 8, 2026
-> Build Window: 3 Days (Thursday Feb 6 – Saturday Feb 8 evening)
-> Demo: Sunday Feb 8, 2026
+> **Source of truth:** PRD.md. Acceptance criteria, features, and priorities come from PRD. See PRD-SOT-MAP.md.
+>
+> AI-Powered Tender Management System | Competition: EnfraTech | Deadline: Sunday Feb 8, 2026
+> Build Window: 3 Days (Thursday Feb 5 – Sunday Feb 8) | Demo: Sunday Feb 8, 2026
 
 ---
 
@@ -11,7 +11,7 @@
 
 **3 rules for the next 72 hours:**
 
-1. **Working > Perfect** — Ship features that work, not features that dazzle. The judges score functionality first. A working CSV upload → AI analysis → CRM push pipeline beats a gorgeous dashboard with broken AI.
+1. **Working > Perfect** — Ship features that work, not features that dazzle. The judges score functionality first. A working CSV/Excel + PDF input → evaluate → push to Odoo and Excel export beats a gorgeous dashboard with broken flows.
 
 2. **Backend-first, UI-last** — Data flow must work before pixels look pretty. Day 1 is plumbing. Day 2 is AI brain. Day 3 is polish and demo prep.
 
@@ -45,7 +45,7 @@
 
 ## Day 1: Foundation & Data Pipeline
 
-**Date:** Thursday, February 6, 2026
+**Date:** Thursday, February 5, 2026
 **Goal:** Project scaffolding + Database + Auth + Tender CRUD + File Upload
 **Success Criteria:** Can register, login, upload a CSV, see tenders in a table
 
@@ -99,14 +99,12 @@ Agent: senior-full-stack or project-lead
    │       ├── tenders/page.tsx
    │       ├── tenders/upload/page.tsx
    │       ├── tenders/[id]/page.tsx
-   │       ├── pipeline/page.tsx
    │       └── settings/page.tsx
    ├── components/ui/
    ├── components/layout/
    ├── components/auth/
    ├── components/tender/
    ├── components/analysis/
-   ├── components/pipeline/
    ├── components/dashboard/
    ├── components/settings/
    ├── lib/supabase/
@@ -165,9 +163,8 @@ Reference: BACKEND.md (8 tables, RLS policies)
    7. rate_card_items    — individual prices in rate cards
    8. extraction_cache   — cached AI extractions (by hash)
 
-   Plus 2 CRM simulation tables (see BACKEND.md):
-   9. pipeline_stages    — CRM pipeline stage definitions
-   10. pipeline_entries   — tenders placed in pipeline stages
+   Optional (per PRD: CRM = Push to Odoo + Excel; no internal pipeline board required):
+   9. export_log or tender.pushed_to_odoo_at — track what was pushed to Odoo (for duplicate detection)
    ```
 
 3. **Enable RLS on ALL tables** — Every table gets:
@@ -339,11 +336,11 @@ Agent: senior-full-stack
 
 ---
 
-## Day 2: AI Brain & CRM Pipeline
+## Day 2: AI Brain & CRM (Odoo + Excel)
 
 **Date:** Friday, February 7, 2026
-**Goal:** AI analysis engine + Pipeline board + CRM push simulation
-**Success Criteria:** Can analyze a tender with AI, see scores + evidence, push to CRM pipeline
+**Goal:** AI analysis engine + Push to Odoo + Excel export (both equal per PRD)
+**Success Criteria:** Can analyze a tender with AI, see scores + evidence, push to Odoo and/or export to Excel
 
 ### Phase 2.1 — AI Provider Setup (1-2 hours)
 
@@ -540,71 +537,54 @@ Agent: senior-full-stack
 ✅ Bulk analyze from tender list works
 ```
 
-### Phase 2.3 — CRM Pipeline Board (2-3 hours)
+### Phase 2.3 — Export & Odoo (6A + 6B per PRD) (2-3 hours)
 
 ```
-Priority: 🟡 HIGH
-Agent: senior-frontend
+Priority: 🔴 CRITICAL
+Agent: senior-full-stack
+Reference: PRD §6A (Excel), §6B (Push to Odoo) — both equal features
 ```
 
 **Tasks:**
 
-1. **Build PipelineBoard component**
-   - 6 columns: New → Scored → Approved → Pushed → Won → Lost
-   - Each column shows count and total estimated value
-   - Cards inside each column
+1. **Export tab on Tender Detail** (`tenders/[id]` — Export tab)
+   - Two equal actions: "تحميل Excel" (Download Excel) and "إرسال إلى Odoo" (Push to Odoo)
+   - Per PRD: both are required features; neither is fallback
 
-2. **Build PipelineCard component**
-   - Shows: tender title, entity name, score badge, deadline
-   - Click → navigate to tender detail
-   - Small action menu (move to next stage, reject)
+2. **Excel export (6A)**
+   - API route: POST `/api/export/excel` (or Server Action)
+   - 3 sheets: Tender Overview, Evaluation Details, Cost Breakdown
+   - Arabic headers; file name `Etmam_[TenderNumber]_[Date].xlsx`
+   - Works standalone (no Odoo required)
 
-3. **Build PipelineColumn component**
-   - Column header with stage name + count
-   - Scrollable card list
-   - Drop zone styling (stretch: drag-and-drop)
-   - MVP: Use "Move to →" button instead of drag-and-drop
+3. **Push to Odoo (6B)**
+   - API route: POST `/api/export/odoo` (or Server Action)
+   - .env: ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_API_KEY
+   - Map all 7 required CRM fields to Odoo opportunity (crm.lead)
+   - Connection test (e.g. GET /api/settings/odoo/test)
+   - Duplicate detection by tender number; warn if exists
+   - On failure: show message; Excel export still available (equal feature)
 
-4. **Create pipeline Server Actions**
-   ```typescript
-   // app/actions/pipeline.ts
-   'use server'
-   export async function moveToPipeline(tenderId: string, stage: string) { ... }
-   export async function pushToCRM(tenderId: string) {
-     // Simulate CRM push (no real CRM for competition)
-     // Create record in crm_push_logs with all required fields
-     // Required fields: entity_name, title, number, deadline, value, score, recommendation
-     // Mark as "pushed" in pipeline
-     // Return CRM record for display
-   }
-   ```
+4. **Build ExportTab component**
+   - Section "تصدير Excel" with [📥 تحميل Excel]
+   - Section "إرسال إلى Odoo CRM" with [🚀 إرسال إلى Odoo]
+   - If Odoo not configured: show "لم يتم إعداد Odoo" + link to settings + [تحميل Excel بدلاً]
 
-5. **Build PushToCRM component**
-   - Button: "Push to CRM"
-   - Confirmation dialog showing all CRM fields that will be created
-   - Shows the 7 required fields (Arabic + English labels)
-   - After push: shows success with CRM record reference
+5. **Build CRMFieldMapping display** (for Odoo push preview)
+   - Table: CRM Field (Arabic) → Value (الجهة, عنوان المنافسة, رقم المنافسة, الموعد النهائي, قيمة تقديرية, درجة التقييم, التوصية + سعر العرض)
 
-6. **Build CRMFieldMapping display**
-   - Table showing: CRM Field Name (Arabic) → Value from tender/analysis
-   - Entity Name (الجهة) → tender.entity_name
-   - Tender Title (عنوان المنافسة) → tender.title
-   - Tender Number (رقم المنافسة) → tender.tender_number
-   - Deadline (الموعد النهائي) → tender.deadline
-   - Estimated Value (قيمة تقديرية) → tender.estimated_value
-   - Evaluation Score (درجة التقييم) → analysis.overall_score
-   - Recommendation (التوصية) → analysis.recommendation
-
-7. **Pipeline page** — Server Component fetching pipeline data
+6. **Dashboard / Tender list batch actions**
+   - "Export All" (Excel) and "Push All Qualified" (Odoo, only tenders scored 70+)
+   - Per PRD 6A/6B acceptance criteria
 
 **Acceptance Test:**
 ```
-✅ Pipeline board shows 6 columns
-✅ Tenders appear in correct pipeline stage
-✅ Can move tenders between stages
-✅ "Push to CRM" shows field preview with Arabic labels
-✅ After push: CRM log record created in database
-✅ Push status visible on tender card
+✅ "Export to Excel" downloads .xlsx with 3 sheets and Arabic headers
+✅ "Push to Odoo" creates opportunity in Odoo when .env configured
+✅ Connection test shows clear message if Odoo not configured
+✅ Duplicate detection warns when tender number already in Odoo
+✅ All 7 required CRM fields mapped; success confirmation shown
+✅ If Odoo push fails, user can still use Excel export (both equal)
 ```
 
 ### Day 2 — End of Day Checkpoint
@@ -613,14 +593,30 @@ Agent: senior-frontend
 ✅ AI analysis works end-to-end (upload → analyze → see scores)
 ✅ Evidence quotes display real text from tenders
 ✅ Anti-hallucination indicators visible (confidence, disclaimer)
-✅ Pipeline board functional with stage movement
-✅ CRM push simulation creates proper records
-✅ All 7 required CRM fields populated correctly
+✅ Export tab: Excel download and Push to Odoo both work (per PRD 6A+6B)
+✅ All 7 required CRM fields populated in Excel and in Odoo when pushed
 
 ⏱ Total Day 2: ~7-9 hours of focused coding
-🛏 Before bed: FULL DEMO RUN — upload CSV → analyze → review → push to CRM
+🛏 Before bed: FULL DEMO RUN — upload CSV/Excel or PDF → evaluate → export Excel + push to Odoo
     Record any bugs for Day 3 morning fixes
 ```
+
+### Phase 2.4 — PDF Upload with AI Extraction (2-3 hours)
+
+```
+Priority: 🔴 CRITICAL (P0 — per PRD, PDF equally important with CSV/Excel)
+Agent: senior-backend + prompt-engineer
+```
+
+**Tasks:**
+
+1. **Update TenderUpload component** — Accept `.pdf` in dropzone (with .csv/.xlsx). Max 20MB. PDF: file info + "Extract with AI" button; CSV/Excel: table preview.
+2. **Create API route: /api/ai/extract** — FormData with PDF; buffer → base64 → Gemini; parse JSON; return structured extraction (see BACKEND.md).
+3. **Build PDFExtractionPreview component** — Editable extracted fields; confidence per field (color-coded); evidence quotes (collapsible); "AI-generated, please review"; "Save Tender" → creates tender.
+4. **Extraction prompt** — Target 12-section template (TENDER-STRUCTURE-v3.0-VERIFIED.md). Return confidence, evidence, warnings.
+5. **Validation layer** — Date formats; tender_number not a page number; flag confidence <70%.
+
+**Acceptance Test:** Upload PDF → "Extract with AI" → loading → editable preview with confidence/evidence → edit → save. Arabic PDFs. Graceful failure → manual entry.
 
 ---
 
@@ -668,9 +664,9 @@ Agent: senior-frontend
    - Quick status badge
    - "View All →" link
 
-4. **Build PipelineSummary component**
-   - Simple horizontal bar showing stage distribution
-   - Or: stage counts as mini cards
+4. **Build ExportStatusSummary component** (optional)
+   - Counts: e.g. tenders exported to Excel, pushed to Odoo (if tracked)
+   - Or: simple status badges (new, evaluated, costed)
 
 5. **Build ScoreDistribution component**
    - Simple bar chart using CSS (no charting library)
@@ -823,10 +819,10 @@ Agent: tech-writer
    [Table of all env vars with descriptions]
    
    ## Features
-   - Upload tenders (CSV/Excel)
+   - Upload tenders (CSV/Excel and PDF — both P0)
    - AI-powered scoring with confidence levels
    - Evidence-based analysis (anti-hallucination)
-   - CRM pipeline management
+   - Push to Odoo + Excel export (both equal, per PRD)
    - Adjustable scoring weights
    - Multi-provider AI (Gemini + Groq)
    
@@ -845,7 +841,7 @@ Agent: tech-writer
    ## Competition Requirements Met
    ✅ Data ingestion (CSV/Excel)
    ✅ Scoring & evaluation (AI-powered, 0-100, adjustable)
-   ✅ CRM integration (pipeline + field mapping)
+   ✅ CRM integration (Odoo push + Excel export, field mapping)
    ✅ User interface (dashboard + tender management)
    ✅ Documentation (this file)
    ✅ Security (auth + RLS + validation)
@@ -882,8 +878,8 @@ Agent: YOU (Hammad) — not the AI
    2:00 — Analyze single tender → show score, evidence, recommendation
    2:30 — Show scoring breakdown + anti-hallucination features
    3:00 — Bulk analyze remaining tenders
-   3:30 — Show pipeline board with tenders in stages
-   4:00 — Push to CRM → show field mapping with Arabic labels
+   3:30 — Show Export tab: Excel download + Push to Odoo (both equal)
+   4:00 — Push to Odoo → show field mapping with Arabic labels; or download Excel
    4:30 — Show settings (switch AI provider, adjust weights)
    5:00 — Dashboard overview → "Questions?"
    ```
@@ -896,7 +892,7 @@ Agent: YOU (Hammad) — not the AI
 4. **Prepare backup plan**
    - If Gemini API is down → switch to Groq (show this as a feature!)
    - If upload fails → have pre-loaded data in DB
-   - If pipeline drag breaks → use button-based stage movement
+   - If Odoo push fails → show message; Excel export always available (equal feature)
    - Screenshot/screen recording as last resort
 
 5. **Deploy to Vercel** (or local for demo)
@@ -942,7 +938,7 @@ Agent: YOU (Hammad) — not the AI
 
 1. ~~Reports page~~ — Already a stretch goal, don't even start
 2. ~~Keyboard shortcuts~~ — Nice but unnecessary
-3. ~~Drag-and-drop pipeline~~ — Use click-to-move buttons
+3. ~~Drag-and-drop pipeline~~ — N/A; Export tab (Odoo + Excel) per PRD
 4. ~~Score distribution chart~~ — Replace with simple text stats
 
 **P0 — NEVER cut (includes locked decisions):**
@@ -968,7 +964,7 @@ Agent: YOU (Hammad) — not the AI
 | AI providers | senior-backend | prompt-engineer |
 | Analysis prompt | prompt-engineer | senior-backend |
 | Tender components | senior-frontend | senior-full-stack |
-| Pipeline board | senior-frontend | senior-full-stack |
+| Export tab (Odoo + Excel) | senior-full-stack | senior-frontend |
 | Dashboard widgets | senior-frontend | senior-full-stack |
 | Settings page | senior-full-stack | senior-frontend |
 | Design polish | art-director | senior-frontend |
@@ -1005,8 +1001,8 @@ Evening (last 30 min):
 
 | Document | How It Feeds Implementation |
 |----------|----------------------------|
+| **PRD.md** | **Source of truth.** Acceptance criteria, features (all P0), CRM = Odoo + Excel, input = CSV/Excel + PDF. See PRD-SOT-MAP.md. |
 | IDEA.md | Demo script narrative, README description |
-| PRD.md | Acceptance criteria for each phase |
 | APP-FLOW.md | Page routing, user journey validation |
 | TECH-STACK.md | Exact libraries, versions, configuration |
 | BACKEND.md | Migration SQL, RLS policies, API contracts |

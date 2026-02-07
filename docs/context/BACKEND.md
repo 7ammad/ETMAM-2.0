@@ -1,9 +1,10 @@
 # Etmam 2.0 — Backend Structure
 
 ## Document Info
-- **Version:** 2.0
-- **Last Updated:** February 5, 2026
-- **Reference:** See IDEA.md, PRD.md, APP-FLOW.md, TECH-STACK.md
+- **Version:** 2.1
+- **Last Updated:** February 7, 2026
+- **Source of truth:** PRD.md. CRM = Push to Odoo + Excel export (both equal). See PRD-SOT-MAP.md.
+- **Reference:** PRD.md (SOT), IDEA.md, APP-FLOW.md, TECH-STACK.md
 
 ---
 
@@ -28,8 +29,8 @@
 │  │  rate_card_items   │  Individual prices in rate cards   │   │
 │  │  evaluation_presets│  Saved criteria configurations     │   │
 │  │  extraction_cache  │  Cached AI extractions (by hash)   │   │
-│  │  pipeline_stages  │  CRM pipeline stage definitions     │   │
-│  │  pipeline_entries  │  Tenders placed in pipeline stages  │   │
+│  │  pipeline_stages  │  Optional: stage definitions (if UI uses stages) │   │
+│  │  pipeline_entries  │  Optional: tender stage tracking (PRD: Export = Odoo + Excel) │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 │  Storage Buckets:                                               │
@@ -544,8 +545,8 @@ CREATE INDEX idx_extraction_cache_hash ON extraction_cache(file_hash);
 
 ---
 
-### Table: `pipeline_stages`
-Defines the stages for the CRM pipeline board. Seeded with default data.
+### Table: `pipeline_stages` (optional)
+Per PRD, CRM output = Push to Odoo + Excel export (no required pipeline board). This table is optional if you want an internal stage view; otherwise use Export tab (Excel + Odoo) only. Seeded with default data if used.
 
 ```sql
 CREATE TABLE pipeline_stages (
@@ -581,8 +582,8 @@ export interface PipelineStage {
 
 ---
 
-### Table: `pipeline_entries`
-Tracks which tenders are in which pipeline stage. One entry per tender.
+### Table: `pipeline_entries` (optional)
+Tracks which tenders are in which pipeline stage (if using pipeline_stages). One entry per tender. Optional per PRD.
 
 ```sql
 CREATE TABLE pipeline_entries (

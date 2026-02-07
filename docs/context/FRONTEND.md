@@ -1,7 +1,8 @@
 # FRONTEND.md — Etmam 2.0 UI Architecture
 
-> AI-Powered Tender Management System
-> Competition: EnfraTech | Deadline: Sunday Feb 8, 2026
+> **Source of truth:** PRD.md. Pages and CRM = Export tab (Excel + Push to Odoo), no required pipeline board. See PRD-SOT-MAP.md.
+>
+> AI-Powered Tender Management System | Competition: EnfraTech | Deadline: Sunday Feb 8, 2026
 > Stack: Next.js 16.1 + TypeScript + Tailwind CSS + Zustand
 
 ---
@@ -281,10 +282,9 @@ src/
 │       ├── dashboard/page.tsx    # Main dashboard
 │       ├── tenders/
 │       │   ├── page.tsx          # Tender list
-│       │   ├── upload/page.tsx   # Upload CSV/Excel
-│       │   └── [id]/page.tsx     # Tender detail + AI analysis
-│       ├── pipeline/page.tsx     # CRM pipeline board
-│       └── settings/page.tsx     # AI config, CRM config, profile
+│       │   ├── upload/page.tsx   # Upload CSV/Excel + PDF (both P0)
+│       │   └── [id]/page.tsx     # Tender detail (tabs: Overview | Cost Estimate | Evaluation | Export)
+│       └── settings/page.tsx     # Rate cards, Evaluation criteria, Odoo/CRM config, profile
 │
 ├── components/
 │   ├── ui/                       # Base UI primitives (custom, NOT shadcn)
@@ -319,7 +319,8 @@ src/
 │   │   ├── TenderRow.tsx         # Single row in table
 │   │   ├── TenderCard.tsx        # Card view (alternative)
 │   │   ├── TenderDetail.tsx      # Full tender detail panel
-│   │   ├── TenderUpload.tsx      # CSV/Excel upload dropzone
+│   │   ├── TenderUpload.tsx      # CSV/Excel + PDF upload (both P0)
+│   │   ├── PDFExtractionPreview.tsx # PDF AI extraction → editable fields, confidence, evidence
 │   │   ├── TenderFilters.tsx     # Filter bar (status, score, date)
 │   │   ├── TenderBulkActions.tsx # Multi-select actions
 │   │   └── TenderStatusBadge.tsx # Color-coded status badge
@@ -334,12 +335,11 @@ src/
 │   │   ├── AnalyzeButton.tsx     # Trigger AI analysis
 │   │   └── AnalysisHistory.tsx   # Past analyses for comparison
 │   │
-│   ├── pipeline/                 # CRM Pipeline components
-│   │   ├── PipelineBoard.tsx     # Kanban-style board
-│   │   ├── PipelineColumn.tsx    # Single column (stage)
-│   │   ├── PipelineCard.tsx      # Tender card in pipeline
-│   │   ├── PushToCRM.tsx         # CRM push action + status
-│   │   └── CRMFieldMapping.tsx   # Field mapping display
+│   ├── export/                   # Export tab (per PRD: Excel + Odoo, both equal)
+│   │   ├── ExportTab.tsx         # Tender detail Export tab: Excel download + Push to Odoo
+│   │   ├── PushToOdoo.tsx        # Push to Odoo action + status
+│   │   └── CRMFieldMapping.tsx  # Field mapping display (7 required fields)
+│   │   # Optional: pipeline/ (PipelineBoard, etc.) if keeping stage view; PRD does not require it
 │   │
 │   ├── dashboard/                # Dashboard widgets
 │   │   ├── StatsRow.tsx          # Key metrics (4 cards)
@@ -383,7 +383,7 @@ src/
 ├── stores/                       # Zustand state management
 │   ├── tender-store.ts
 │   ├── analysis-store.ts
-│   ├── pipeline-store.ts
+│   ├── pipeline-store.ts        # Optional (PRD: Export tab = Excel + Odoo)
 │   ├── settings-store.ts
 │   └── ui-store.ts
 │
@@ -396,7 +396,7 @@ src/
 └── hooks/                        # Custom React hooks
     ├── use-tenders.ts            # Tender CRUD operations
     ├── use-analysis.ts           # AI analysis operations
-    ├── use-pipeline.ts           # Pipeline operations
+    ├── use-pipeline.ts           # Optional pipeline operations (PRD: Export tab primary)
     ├── use-auth.ts               # Auth state and operations
     ├── use-toast.ts              # Toast notifications
     └── use-keyboard.ts           # Keyboard shortcuts
@@ -533,8 +533,8 @@ interface EvidenceQuotesProps {
 ```
 
 ```typescript
-// components/pipeline/PipelineBoard.tsx
-// Kanban board with columns: New → Scored → Approved → Pushed to CRM → Won/Lost
+// Optional: components/pipeline/PipelineBoard.tsx (PRD does not require pipeline board; Export tab = Excel + Odoo)
+// Kanban board with columns: New → Scored → Approved → Pushed → Won/Lost
 // Cards show: tender title, entity, score badge, deadline
 // Drag-and-drop between columns (stretch goal — use click-to-move for MVP)
 // Column counts and totals
@@ -568,9 +568,11 @@ const PIPELINE_STAGES = [
 
 ### 3.2 Store Architecture
 
+Per PRD, primary CRM UI = Export tab (Excel + Odoo). pipeline-store is optional if you add a stage view.
+
 ```
 ┌─────────────┐     ┌──────────────┐     ┌───────────────┐
-│ tender-store │────▶│analysis-store│────▶│pipeline-store │
+│ tender-store │────▶│analysis-store│────▶│pipeline-store │ (optional)
 │              │     │              │     │               │
 │ - tenders[]  │     │ - analyses{} │     │ - stages{}    │
 │ - filters    │     │ - loading    │     │ - dragState   │
@@ -754,7 +756,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
 ```
 
 ```typescript
-// stores/pipeline-store.ts
+// stores/pipeline-store.ts (optional — PRD: Export tab = Excel + Odoo)
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 

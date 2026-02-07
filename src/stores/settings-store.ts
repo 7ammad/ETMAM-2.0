@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
+import { DEFAULT_SCORING_WEIGHTS } from "@/lib/constants";
 
 interface ScoringWeights {
   relevance: number;
@@ -10,7 +11,8 @@ interface ScoringWeights {
 }
 
 interface SettingsStore {
-  aiProvider: "gemini" | "groq";
+  aiProvider: "deepseek" | "gemini" | "groq";
+  deepseekModel: string;
   geminiModel: string;
   groqModel: string;
 
@@ -24,7 +26,7 @@ interface SettingsStore {
   locale: "en" | "ar";
   tableView: "table" | "card";
 
-  setAIProvider: (provider: "gemini" | "groq") => void;
+  setAIProvider: (provider: "deepseek" | "gemini" | "groq") => void;
   setScoringWeights: (weights: Partial<ScoringWeights>) => void;
   setLocale: (locale: "en" | "ar") => void;
   setTableView: (view: "table" | "card") => void;
@@ -37,16 +39,13 @@ export const useSettingsStore = create<SettingsStore>()(
   devtools(
     persist(
       (set) => ({
-        aiProvider: "gemini",
+        aiProvider: "deepseek",
+        deepseekModel: "deepseek-chat",
         geminiModel: "gemini-2.5-flash",
         groqModel: "llama-3.3-70b-versatile",
 
         scoringWeights: {
-          relevance: 30,
-          budgetFit: 25,
-          timeline: 20,
-          competition: 15,
-          strategic: 10,
+          ...DEFAULT_SCORING_WEIGHTS,
         },
         autoAnalyze: false,
         confidenceThreshold: 50,

@@ -208,12 +208,7 @@ But there's no clear decision tree for which to use. TECH-STACK.md says "Supabas
 
 **Concern:** IMPLEMENTATION.md's CRM push says "Simulate CRM push (no real CRM for competition)" but the PRD and IDEA.md position CRM integration as a core feature and competition requirement.
 
-**Question for Hammad:** Is the CRM push:
-- (a) A real API integration to an external CRM (Salesforce, HubSpot, etc.)?
-- (b) An internal pipeline board that SIMULATES a CRM workflow?
-- (c) A data export (CSV/JSON) that COULD be pushed to a CRM?
-
-This matters because judges will evaluate it differently. If it's (b), the docs should clearly frame it as "internal CRM pipeline" not "CRM integration."
+**Resolution (per PRD v2.1, Feb 2026):** CRM = two equal features: (1) **Push to Odoo** (EnfraTech’s CRM) via .env integration, and (2) **Manual extraction / Excel export**. No internal pipeline board required. See PRD §6A/6B and PRD-SOT-MAP.md.
 
 ---
 

@@ -1,9 +1,10 @@
 # Etmam 2.0 — Tech Stack
 
 ## Document Info
-- **Version:** 2.0
-- **Last Updated:** February 5, 2026
-- **Reference:** See IDEA.md, PRD.md, APP-FLOW.md
+- **Version:** 2.1
+- **Last Updated:** February 7, 2026
+- **Source of truth:** PRD.md. This doc aligns to PRD for features, CRM, and integrations. See PRD-SOT-MAP.md.
+- **Reference:** PRD.md (SOT), IDEA.md, APP-FLOW.md
 
 ---
 
@@ -682,7 +683,7 @@ ODOO_USERNAME=user@company.com
 ODOO_API_KEY=your-api-key-here
 ```
 
-**Fallback:** If any .env variable is missing, Odoo features are disabled and Excel export is shown as primary option. No errors, no broken UI.
+**Per PRD:** Push to Odoo and Excel export are equally important features. If Odoo .env is missing, show a clear message (e.g. "Odoo not configured") and offer Excel export; no errors, no broken UI.
 
 ---
 
@@ -754,8 +755,8 @@ AI_PROVIDER=gemini
 GEMINI_API_KEY=AI...
 # GROQ_API_KEY=gsk_...  # Uncomment if using Groq instead
 
-# --- Odoo CRM (Optional) ---
-# Leave blank if not using Odoo — Excel export will be primary
+# --- Odoo CRM (Required for full demo — EnfraTech's CRM) ---
+# PRD: Push to Odoo and Excel export are equally important. Leave blank if judges don't have Odoo; Excel export is equally available.
 ODOO_URL=
 ODOO_DB=
 ODOO_USERNAME=
@@ -774,7 +775,7 @@ Competition deliverable. Includes:
 5. Get Gemini API key (with screenshots)
 6. Configure .env
 7. Start development server
-8. Optional: Odoo integration
+8. Odoo integration (required for full demo; Excel export equally available per PRD)
 9. Deploy to Vercel
 
 **Target:** App running in < 10 minutes (competition requirement)
@@ -883,7 +884,7 @@ AI_PROVIDER=gemini                # "gemini" or "groq"
 GEMINI_API_KEY=AI...              # from ai.google.dev (NOT console.cloud.google.com)
 # GROQ_API_KEY=gsk_...            # alternative if Gemini blocked
 
-# --- Odoo CRM (optional) ---
+# --- Odoo CRM (required for full demo — EnfraTech's CRM; PRD 6B) ---
 ODOO_URL=https://company.odoo.com
 ODOO_DB=company_database
 ODOO_USERNAME=user@company.com

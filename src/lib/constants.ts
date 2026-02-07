@@ -15,11 +15,11 @@ export const PIPELINE_STAGES = [
 export type PipelineStageId = (typeof PIPELINE_STAGES)[number]["id"];
 
 export const DEFAULT_SCORING_WEIGHTS = {
-  relevance: 30,
+  relevance: 25,
   budgetFit: 25,
   timeline: 20,
   competition: 15,
-  strategic: 10,
+  strategic: 15,
 } as const;
 
 export const CONFIDENCE_THRESHOLDS = {

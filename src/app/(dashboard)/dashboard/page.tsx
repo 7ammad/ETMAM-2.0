@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { StatsRow } from "@/components/dashboard/StatsRow";
 import { RecentTenders } from "@/components/dashboard/RecentTenders";
-import { PipelineSummary } from "@/components/dashboard/PipelineSummary";
+import { ExportSummary } from "@/components/dashboard/ExportSummary";
 import { ScoreDistribution } from "@/components/dashboard/ScoreDistribution";
 import Link from "next/link";
 
@@ -19,21 +19,13 @@ export default async function DashboardPage() {
     );
   }
 
-  const [tendersRes, entriesRes] = await Promise.all([
-    supabase
-      .from("tenders")
-      .select("id, tender_title, entity, evaluation_score, status, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("pipeline_entries")
-      .select("stage_id")
-      .eq("user_id", user.id),
-  ]);
+  const { data: tendersData } = await supabase
+    .from("tenders")
+    .select("id, tender_title, entity, evaluation_score, status, created_at, odoo_lead_id")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
 
-  const tenders = tendersRes.data ?? [];
-  const entries = entriesRes.data ?? [];
-
+  const tenders = tendersData ?? [];
   const totalTenders = tenders.length;
   const withScore = tenders.filter((t) => t.evaluation_score != null);
   const analyzedCount = withScore.length;
@@ -41,12 +33,8 @@ export default async function DashboardPage() {
     withScore.length > 0
       ? withScore.reduce((a, t) => a + (t.evaluation_score ?? 0), 0) / withScore.length
       : null;
-
-  const stageCounts: Record<string, number> = {};
-  for (const e of entries) {
-    stageCounts[e.stage_id] = (stageCounts[e.stage_id] ?? 0) + 1;
-  }
-  const pushedToCrm = stageCounts["pushed"] ?? 0;
+  /** PRD: CRM = Odoo + Excel. Count tenders actually pushed to Odoo (not pipeline stage). */
+  const pushedToCrm = tenders.filter((t) => t.odoo_lead_id != null).length;
 
   const recentTenders = tenders.slice(0, 5).map((t) => ({
     id: t.id,
@@ -66,12 +54,31 @@ export default async function DashboardPage() {
     else buckets[3]++;
   }
 
+  if (totalTenders === 0) {
+    return (
+      <main className="flex min-h-[50vh] flex-col items-center justify-center p-6">
+        <div className="rounded-lg border border-border bg-card p-8 text-center shadow-sm">
+          <h2 className="text-lg font-semibold text-foreground">ابدأ برفع أول منافسة</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            ارفع ملف Excel أو CSV أو PDF لاستخراج البيانات والتقييم.
+          </p>
+          <Link
+            href="/tenders"
+            className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            رفع منافسة جديدة
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-foreground">لوحة التحكم</h1>
         <Link
-          href="/tenders/upload"
+          href="/tenders"
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           رفع منافسة جديدة
@@ -87,7 +94,7 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <RecentTenders tenders={recentTenders} />
-        <PipelineSummary stageCounts={stageCounts} />
+        <ExportSummary pushedToOdoo={pushedToCrm} />
       </div>
 
       <ScoreDistribution counts={buckets} />

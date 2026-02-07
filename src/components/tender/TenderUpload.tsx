@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   parseCSV,
@@ -18,9 +18,13 @@ import {
 const MAX_CSV_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const MAX_PDF_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 
-export function TenderUpload() {
+interface TenderUploadProps {
+  initialFile: File;
+  onBack: () => void;
+}
+
+export function TenderUpload({ initialFile, onBack }: TenderUploadProps) {
   const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ParsedTender[]>([]);
   const [errors, setErrors] = useState<{ row: number; message: string }[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -28,51 +32,38 @@ export function TenderUpload() {
   // PDF extraction state
   const [extracting, setExtracting] = useState(false);
   const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
-  const [pdfFileName, setPdfFileName] = useState("");
 
-  function resetState() {
-    setFile(null);
-    setPreview([]);
-    setErrors([]);
-    setExtraction(null);
-    setPdfFileName("");
-  }
+  useEffect(() => {
+    processFile(initialFile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFile]);
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-
-    const ext = selectedFile.name.split(".").pop()?.toLowerCase();
+  async function processFile(file: File) {
+    const ext = file.name.split(".").pop()?.toLowerCase();
     const isPdf = ext === "pdf";
     const maxBytes = isPdf ? MAX_PDF_BYTES : MAX_CSV_BYTES;
     const maxMB = isPdf ? MAX_PDF_SIZE_MB : MAX_FILE_SIZE_MB;
 
-    if (selectedFile.size > maxBytes) {
+    if (file.size > maxBytes) {
       setErrors([
         {
           row: 0,
           message: `حجم الملف يتجاوز الحد المسموح (${maxMB} ميجابايت)`,
         },
       ]);
-      setFile(null);
-      setPreview([]);
-      setExtraction(null);
       return;
     }
 
-    setFile(selectedFile);
     setErrors([]);
     setPreview([]);
     setExtraction(null);
 
     try {
       if (isPdf) {
-        // PDF: send to extraction API
-        setPdfFileName(selectedFile.name);
         setExtracting(true);
 
         const formData = new FormData();
-        formData.append("file", selectedFile);
+        formData.append("file", file);
 
         const response = await fetch("/api/ai/extract", {
           method: "POST",
@@ -89,12 +80,12 @@ export function TenderUpload() {
 
         setExtracting(false);
       } else if (ext === "csv") {
-        const text = await selectedFile.text();
+        const text = await file.text();
         const result = parseCSV(text);
         setPreview(result.valid);
         setErrors(result.errors);
       } else if (ext === "xlsx" || ext === "xls") {
-        const buffer = await selectedFile.arrayBuffer();
+        const buffer = await file.arrayBuffer();
         const result = parseExcel(buffer);
         setPreview(result.valid);
         setErrors(result.errors);
@@ -131,7 +122,7 @@ export function TenderUpload() {
             ? "تم رفع منافسة واحدة بنجاح"
             : `تم رفع ${count} منافسة بنجاح`;
         alert(msg);
-        resetState();
+        onBack();
         router.push("/tenders");
         router.refresh();
       } else {
@@ -149,41 +140,18 @@ export function TenderUpload() {
     return (
       <PDFExtractionPreview
         extraction={extraction}
-        fileName={pdfFileName}
-        onBack={resetState}
+        fileName={initialFile.name}
+        onBack={onBack}
       />
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border-2 border-dashed border-border p-8 text-center transition-colors hover:border-gold-500">
-        <input
-          type="file"
-          accept=".csv,.xlsx,.xls,.pdf"
-          onChange={handleFileChange}
-          className="hidden"
-          id="file-upload"
-        />
-        <label htmlFor="file-upload" className="block cursor-pointer">
-          <div className="mb-2 text-muted-foreground">
-            {extracting
-              ? "جارٍ استخراج البيانات من الملف..."
-              : file
-                ? file.name
-                : "اسحب ملف CSV أو Excel أو PDF هنا أو انقر للاختيار"}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            CSV/Excel: حتى {MAX_FILE_SIZE_MB} ميجابايت — PDF: حتى{" "}
-            {MAX_PDF_SIZE_MB} ميجابايت
-          </div>
-        </label>
-      </div>
-
       {extracting && (
         <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          جارٍ استخراج البيانات بالذكاء الاصطناعي...
+          جارٍ استخراج البيانات بالذكاء الاصطناعي — {initialFile.name}
         </div>
       )}
 
@@ -200,6 +168,13 @@ export function TenderUpload() {
               </li>
             ))}
           </ul>
+          <button
+            type="button"
+            onClick={onBack}
+            className="mt-3 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            رجوع
+          </button>
         </div>
       )}
 
@@ -227,7 +202,7 @@ export function TenderUpload() {
                     <td className="px-4 py-2">{tender.tender_number}</td>
                     <td className="px-4 py-2">{tender.deadline}</td>
                     <td className="px-4 py-2" dir="ltr">
-                      {tender.estimated_value.toLocaleString("ar-SA")}
+                      {tender.estimated_value != null ? Number(tender.estimated_value).toLocaleString("ar-SA") : "—"}
                     </td>
                   </tr>
                 ))}
@@ -240,14 +215,23 @@ export function TenderUpload() {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={handleUpload}
-            disabled={uploading}
-            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-gold-600 disabled:opacity-50"
-          >
-            {uploading ? "جارٍ الرفع..." : `رفع ${preview.length} منافسة`}
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              رجوع
+            </button>
+            <button
+              type="button"
+              onClick={handleUpload}
+              disabled={uploading}
+              className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-gold-600 disabled:opacity-50"
+            >
+              {uploading ? "جارٍ الرفع..." : `رفع ${preview.length} منافسة`}
+            </button>
+          </div>
         </div>
       )}
     </div>

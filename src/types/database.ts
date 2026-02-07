@@ -3,6 +3,11 @@
  * When Supabase is linked: run `pnpm exec supabase gen types typescript --project-id <ref> > src/types/database.ts` to replace with generated types.
  */
 
+import type {
+  SpecCard, SpecCardInsert, SpecCardUpdate,
+  ProductNomination, ProductNominationInsert, ProductNominationUpdate,
+} from "./spec-cards";
+
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 
 export interface Database {
@@ -18,6 +23,8 @@ export interface Database {
       extraction_cache: { Row: ExtractionCache; Insert: ExtractionCacheInsert; Update: ExtractionCacheUpdate };
       pipeline_stages: { Row: PipelineStage; Insert: PipelineStageInsert; Update: PipelineStageUpdate };
       pipeline_entries: { Row: PipelineEntry; Insert: PipelineEntryInsert; Update: PipelineEntryUpdate };
+      spec_cards: { Row: SpecCard; Insert: SpecCardInsert; Update: SpecCardUpdate };
+      product_nominations: { Row: ProductNomination; Insert: ProductNominationInsert; Update: ProductNominationUpdate };
     };
   };
 }
@@ -28,6 +35,7 @@ export interface Profile {
   email: string;
   full_name: string | null;
   company_name: string | null;
+  company_capabilities: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -46,7 +54,7 @@ export interface Tender {
   tender_title: string;
   tender_number: string;
   deadline: string;
-  estimated_value: number;
+  estimated_value: number | null;
   description: string | null;
   requirements: Json;
   line_items: Json;
@@ -55,13 +63,18 @@ export interface Tender {
   source_file_name: string | null;
   extraction_confidence: number | null;
   extraction_warnings: Json;
+  extracted_sections: Json | null;
   evaluation_score: number | null;
   recommendation: TenderRecommendation | null;
   total_cost: number | null;
   proposed_price: number | null;
+  profit_margin_percent: number | null;
+  tender_url: string | null;
   status: TenderStatus;
-  exported_at: string | null;
-  exported_to: string | null;
+  spec_cards_status: 'pending' | 'generating' | 'ready' | 'error';
+  nominations_status: 'pending' | 'generating' | 'ready' | 'error';
+  exported_to_excel_at: string | null;
+  pushed_to_odoo_at: string | null;
   odoo_lead_id: number | null;
   created_at: string;
   updated_at: string;
@@ -73,7 +86,10 @@ export type TenderInsert = Omit<Tender, "id" | "created_at" | "updated_at"> & {
   requirements?: Json;
   line_items?: Json;
   extraction_warnings?: Json;
+  extracted_sections?: Json | null;
   status?: TenderStatus;
+  spec_cards_status?: 'pending' | 'generating' | 'ready' | 'error';
+  nominations_status?: 'pending' | 'generating' | 'ready' | 'error';
 };
 export type TenderUpdate = Partial<Omit<Tender, "id" | "user_id">>;
 
@@ -145,9 +161,12 @@ export interface RateCardItem {
   category: string | null;
   unit: string;
   unit_price: number;
+  brand: string | null;
+  model_sku: string | null;
+  specifications: Json | null;
   created_at: string;
 }
-export type RateCardItemInsert = Omit<RateCardItem, "id" | "created_at"> & { id?: string; created_at?: string };
+export type RateCardItemInsert = Omit<RateCardItem, "id" | "created_at"> & { id?: string; created_at?: string; brand?: string | null; model_sku?: string | null; specifications?: Json | null };
 export type RateCardItemUpdate = Partial<Omit<RateCardItem, "id" | "rate_card_id" | "user_id">>;
 
 // --- Evaluation presets ---

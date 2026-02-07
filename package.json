@@ -18,6 +18,7 @@
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "papaparse": "^5.5.3",
+    "pdf-parse": "^2.4.5",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "sonner": "^2.0.7",
@@ -26,10 +27,16 @@
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "supabase"
+    ]
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/papaparse": "^5.5.2",
+    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

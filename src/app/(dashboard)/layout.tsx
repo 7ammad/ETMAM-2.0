@@ -33,18 +33,6 @@ export default function DashboardLayout({
             المنافسات
           </Link>
           <Link
-            href="/tenders/upload"
-            className="rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
-          >
-            رفع منافسة
-          </Link>
-          <Link
-            href="/pipeline"
-            className="rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
-          >
-            المسار
-          </Link>
-          <Link
             href="/settings"
             className="rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
           >

@@ -1,9 +1,6 @@
 # Etmam 2.0 — Supabase local config
 # See: https://supabase.com/docs/guides/cli/config
 
-[project]
-id = "etmam-2.0"
-
 [api]
 enabled = true
 port = 54321
@@ -24,5 +21,14 @@ port = 54323
 enabled = true
 site_url = "http://localhost:3000"
 
+[auth.email]
+enable_confirmations = false
+
 [storage]
 enabled = true
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false

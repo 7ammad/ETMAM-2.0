@@ -28,9 +28,13 @@ export async function updateSession(request: NextRequest): Promise<UpdateSession
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value)
-        );
+        try {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+        } catch {
+          // Request cookies may be read-only in some runtimes; response is sufficient for session refresh
+        }
         response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options)

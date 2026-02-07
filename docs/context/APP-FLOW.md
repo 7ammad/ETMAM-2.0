@@ -1,9 +1,10 @@
 # Etmam 2.0 — App Flow
 
 ## Document Info
-- **Version:** 2.0
-- **Last Updated:** February 5, 2026
+- **Version:** 2.1
+- **Last Updated:** February 7, 2026
 - **Reference:** See IDEA.md and PRD.md for context
+- **Alignment:** Tender input = CSV/Excel and PDF (both P0, equally important). CRM output = Push to Odoo and manual extraction/Excel (both P0, equally important). No P1/P2.
 
 ---
 
@@ -19,7 +20,6 @@
 │ [Logo]   │         MAIN CONTENT AREA                   │
 │ Dashboard│                                             │
 │ Tenders  │                                             │
-│ Pipeline │                                             │
 │ Settings │                                             │
 │          │                                             │
 └──────────┴─────────────────────────────────────────────┘
@@ -29,10 +29,9 @@
 /register ................ Register
 /dashboard ............... Dashboard (home, requires auth)
 /tenders ................. Tender List
-/tenders/upload .......... Tender Input (CSV/Excel/PDF/Manual)
-/tenders/[id] ............ Tender Detail (tabs: Overview | Evaluation | Costs | Export)
-/pipeline ................ CRM Pipeline Board
-/settings ................ Settings (tabs: AI Config | Scoring Weights | Rate Cards | Profile)
+/upload .................. Tender Input (CSV/Excel/PDF/Manual — both sources P0)
+/tenders/[id] ............ Tender Detail (tabs: Overview | Cost Estimate | Evaluation | Export)
+/settings ................ Settings (3 areas: Rate Cards | Evaluation Criteria | Odoo/CRM)
 ```
 
 ---
@@ -51,7 +50,7 @@ User arrives at /
   → Returning authenticated user hitting / → auto-redirect to /dashboard
 ```
 
-### Journey A: CSV/Excel Path (Base — P0)
+### Journey A: CSV/Excel Path (P0 — equally important input)
 ```
 User lands on Dashboard
   → Clicks "رفع منافسة جديدة" (Upload New Tender)
@@ -65,19 +64,18 @@ User lands on Dashboard
   → Redirected to /tenders (list now shows new tenders)
   → User clicks a tender row
   → Arrives at /tenders/[id] — Overview tab
+  → Clicks "التكاليف" (Cost Estimate) tab
+  → Adds/edits cost line items, sees totals and bid price
   → Clicks "التقييم" (Evaluation) tab
-  → Scores each criterion using sliders
+  → Scores each criterion (Profit Potential uses bid price when available)
   → Sees overall score + recommendation auto-update
-  → Clicks "التكاليف" (Costs) tab
-  → Adds/edits cost line items
-  → Sees totals update in real-time
   → Clicks "التصدير" (Export) tab
   → Clicks "تحميل Excel" → file downloads
   → OR clicks "إرسال إلى Odoo" → success confirmation
   → Done ✓
 ```
 
-### Journey B: PDF + AI Path (Enhancement — P1)
+### Journey B: PDF + AI Path (P0 — equally important input)
 ```
 User lands on Dashboard
   → Clicks "رفع منافسة جديدة"
@@ -90,10 +88,10 @@ User lands on Dashboard
   → User reviews, edits any incorrect extractions
   → Clicks "تأكيد واستيراد"
   → Redirected to /tenders/[id] — Overview tab (with AI analysis summary)
-  → Same flow as Journey A from here (Evaluation → Costs → Export)
+  → Same flow as Journey A from here (Cost Estimate → Evaluation → Export)
 ```
 
-### Journey C: Rate Card Setup (One-Time — P1)
+### Journey C: Rate Card Setup (One-Time — P0)
 ```
 User clicks "الإعدادات" (Settings) in nav
   → Arrives at /settings
@@ -119,10 +117,10 @@ User clicks "الإعدادات" (Settings) in nav
   → Can click "✕" on any criterion to remove it
   → Can click "حفظ كقالب" (Save as Preset) → enters preset name
   → Can load a saved preset from dropdown
-  → Done — all future evaluations use these criteria ✓
+  → Done — all evaluations use these criteria ✓
 ```
 
-### Journey E: Batch Operations (P1)
+### Journey E: Batch Operations (P0)
 ```
 User is on Dashboard or /tenders
   → Selects multiple tenders via checkboxes
@@ -353,10 +351,10 @@ After AI extraction complete:
 └──────────────────────────────────────────────────────────┘
 ```
 
-#### Tab 2: Evaluation (التقييم)
+#### Tab 3: Evaluation (التقييم)
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  [نظرة عامة] [التقييم] [التكاليف] [التصدير]              │
+│  [نظرة عامة] [التكاليف] [التقييم] [التصدير]              │
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
 │  ┌─── الدرجة الإجمالية ───────────────────────────────┐ │
@@ -426,10 +424,10 @@ After AI extraction complete:
 └─────────────────────────────────────────────────┘
 ```
 
-#### Tab 3: Costs (التكاليف)
+#### Tab 2: Cost Estimate (التكاليف)
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  [نظرة عامة] [التقييم] [التكاليف] [التصدير]              │
+│  [نظرة عامة] [التكاليف] [التقييم] [التصدير]              │
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
 │  ┌─── التكاليف المباشرة ──────────────────────────────┐ │

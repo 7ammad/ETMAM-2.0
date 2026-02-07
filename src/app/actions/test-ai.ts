@@ -42,7 +42,7 @@ export type TestAIResult = {
  */
 export async function testAIProvider(): Promise<TestAIResult> {
   const start = Date.now();
-  const provider = getAIProvider();
+  const provider = await getAIProvider();
 
   try {
     const result = await provider.analyze(SAMPLE_TENDER, DEFAULT_WEIGHTS);

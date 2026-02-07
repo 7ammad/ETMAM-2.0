@@ -6,11 +6,11 @@ interface CategoryScore {
 }
 
 const CRITERIA_LABELS: Record<string, string> = {
-  relevance: "الملاءمة",
-  budget_fit: "ملاءمة الميزانية",
+  relevance: "التوافق التقني",
+  budget_fit: "الملاءمة المالية",
   timeline: "الجدول الزمني",
   competition: "مستوى المنافسة",
-  strategic: "المحاذاة الاستراتيجية",
+  strategic: "القيمة الاستراتيجية",
 };
 
 interface ScoreBreakdownProps {

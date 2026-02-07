@@ -4,6 +4,8 @@
 > **Date:** 2026-02-06 (LIVE — updated continuously)
 > **Branch:** `master`
 > **Purpose:** Complete activity log so Cursor can pick up exactly where Claude Code left off.
+>
+> **Latest Cursor team activity:** See **`docs/CHANGELOG.md`** for what Cursor did. Always read **CHANGELOG.md** first to get current state; Cursor logs all activity there.
 
 ---
 
@@ -12,30 +14,34 @@
 | Area | Status | Details |
 |------|--------|---------|
 | **Phases 1.1–1.4** | **Committed** | Auth, DB, tender upload, list/detail |
-| **Phases 2.1–2.3** | **Committed** | AI provider, analysis engine, pipeline board |
-| **Phase 2.4 (PDF)** | **IN PROGRESS (unstaged)** | PDF upload + Gemini extraction + preview + verification |
-| **Phase 3.1** | **Complete (unstaged)** | Bug fix pass — no bugs found |
-| **Phase 3.2** | **Complete (unstaged)** | Dashboard with live stats |
-| **Phase 3.3** | **Complete (unstaged)** | Settings page (AI toggle, weights, profile) |
-| **Design System** | **Complete (unstaged)** | 22 components in `src/components/ui/` — Claude Code built this |
-| **Phase 3.4 (Visual Polish)** | **Cursor working on it** | See Cursor Status below |
-| **Landing Page** | **Cursor working on it** | See Cursor Status below |
-| **Phase 3.5 (Docs)** | **NOT STARTED** | Documentation polish |
-| **Phase 3.6 (Demo Prep)** | **NOT STARTED** | Demo rehearsal |
+| **Phases 2.1–2.3** | **Committed** | AI provider, analysis engine; pipeline board removed from dashboard |
+| **Phase 2.4 (PDF)** | **Done (verified)** | PDF upload → POST /api/ai/extract → PDFExtractionPreview → savePdfTender; IRONCLAD 2.4 verified 2026-02-07 |
+| **Phase 2.5 (Cost)** | **Done** | Cost Estimate tab: CRUD, rate card match, bid price; PRD F5/F5D: source badges, zero-price highlight, cost summary card (direct/indirect subtotals, margin % default 15, profit, final bid, القيمة التقديرية للمنافسة, الفرق مبلغ+٪ green/red), category column + edit select; label and cleanup pass 2026-02-07 |
+| **Evaluation + Cost** | **Done** | analyzeTender buildTenderContent() fetches cost_items and appends cost block (direct/indirect/total, proposed price, margin %, estimated value, delta) so ملاءمة الميزانية scores on actual cost data (2026-02-07) |
+| **Phase 2.3 (Export)** | **Done** | Export tab: Excel + Odoo push; **batch:** Export All (Excel) + Push All Qualified (Odoo 70+) on Dashboard & Tenders list |
+| **Phase 3.1** | **Done** | Bug fix pass |
+| **Phase 3.2** | **Done** | Dashboard: StatsRow, RecentTenders, **ExportSummary** (Odoo count), ScoreDistribution — no pipeline card |
+| **Phase 3.3** | **Done** | Settings (AI, Scoring, Profile; Rate Cards / Odoo config per ironclad plan) |
+| **Design System** | **Done** | 22 components in `src/components/ui/` |
+| **Nav** | **Current** | Dashboard, Tenders, Upload, Settings (4 items). IA note: Upload could be button→modal instead of page. |
+| **Ironclad plan** | **docs/reports/IRONCLAD-IMPLEMENTATION-PLAN.md** | Terminology: sidebar = pages; tabs = only in Tender Detail & Settings |
+| **Phase 3.4** | **Done** | Visual polish (Dashboard empty state, StatsRow gold, Tenders list ScoreBadge + hover, Tender Detail score + days remaining, Settings tabs) — 2026-02-07 |
+| **Landing** | **Done** | / = hero + 3 problem cards + pipeline text; auth redirect to /dashboard; 2026-02-07 |
+| **Phase 3.5 / 3.6** | **Pending** | Docs polish, demo rehearsal |
 
-**CRITICAL: There are many modified + new files that are UNSTAGED.** Work lives in the working tree only.
+**CRITICAL:** Many changes are in working tree. For exact "what was done when," use **docs/CHANGELOG.md**.
 
 ---
 
 ## Cursor Agent Status (LIVE)
 
-**Cursor has 4 remaining items:**
-1. **Phase 3.4** — Visual polish (IN PROGRESS or NEXT)
-2. **Landing Page** — Public landing page
-3. **Phase 3.5** — Documentation polish
-4. **Phase 3.6** — Demo preparation
+**Cursor’s remaining items:**
+1. **Phase 3.5** — Documentation polish
+2. **Phase 3.6** — Demo rehearsal (E2E with docs/tenders/251139011431.pdf)
 
-**Next logical step for Cursor:** Phase 3.4 (visual polish) or Landing page, then 3.5 and 3.6.
+**Optional (IA):** Treat Upload as action: remove `/upload` from sidebar, add "رفع منافسة" button (e.g. header/dashboard) that opens modal/drawer with CSV/Excel + PDF upload UI.
+
+**Next logical step:** Phase 3.5 (docs), 3.6 (demo prep). Always read **CHANGELOG.md** latest entry first.
 
 ---
 
@@ -125,6 +131,7 @@ toast.success("تم الحفظ بنجاح")
 
 ### Phase 1.2 — Database Schema
 - Commit `d8d571e` — Schema migration, database types
+- **Schema logic fix** (unstaged) — `20260207100000_fix_schema_logic.sql`: status flow triggers (cost→evaluate order), profit_margin_percent, company_capabilities, dual export tracking, evaluation history, updated_at triggers, tender_url. Apply with `npx supabase db reset`.
 
 ### Phase 1.3 — Authentication
 - Commit `66a6e0f` — Supabase auth flow (login/register/redirect)
@@ -171,11 +178,11 @@ toast.success("تم الحفظ بنجاح")
 - `src/components/dashboard/StatCard.tsx` — Reusable stat display (value, label, trend)
 - `src/components/dashboard/StatsRow.tsx` — 4-card grid (Total, Analyzed, Avg Score, CRM Pushed)
 - `src/components/dashboard/RecentTenders.tsx` — Last 5 tenders with status/score badges
-- `src/components/dashboard/PipelineSummary.tsx` — Pipeline stage counts
+- `src/components/dashboard/ExportSummary.tsx` — Odoo export count + link to Tenders (replaced PipelineSummary on dashboard)
 - `src/components/dashboard/ScoreDistribution.tsx` — 4-bucket score histogram (CSS bars)
 
 **Modified files:**
-- `src/app/(dashboard)/dashboard/page.tsx` — Server component fetching real data, rendering all dashboard widgets
+- `src/app/(dashboard)/dashboard/page.tsx` — Server component; fetches tenders only; renders StatsRow, RecentTenders, ExportSummary (Odoo count), ScoreDistribution (no pipeline)
 
 ### Phase 3.3 — Settings Page
 
@@ -250,12 +257,30 @@ toast.success("تم الحفظ بنجاح")
 - **Toaster is wired** in layout.tsx — use `toast.success()` / `toast.error()` anywhere
 
 ### Known Gaps / Things to Watch
-1. **PDF extraction is untested end-to-end** — built but may need integration testing with real Arabic PDFs
-2. **Odoo CRM integration** — Field mapping designed but XML-RPC push not wired yet
-3. **Excel 3-sheet export** — SheetJS write logic may need completion
-4. **Rate card upload** — Referenced in flows but implementation status unclear
-5. **Batch operations** — Dashboard has selection UI planned but not verified
-6. **Existing pages not yet using design system** — Phase 3.4 should migrate them
+1. **PDF extraction** — Verified end-to-end (TenderUpload → /api/ai/extract → PDFExtractionPreview → save). Optional: smoke test with real Arabic PDF.
+2. **Cost Estimator** — Done (Phase 2.5 + PRD F5). Cost Estimate tab: CRUD, rate card match, source badges, summary card (direct/indirect, margin %, profit, final bid, vs estimated_value), category in edit; proposed_price on Overview and Export.
+3. **Evaluation criteria** — Done (CURSOR-PROMPTS 3). Saudi IT/Telecom labels and weights; prompt includes cost-aware الملاءمة المالية description.
+4. **Landing** — Done. / = hero + 3 cards + pipeline; redirect when logged in.
+3. **Odoo** — Push wired (`src/lib/odoo.ts`, `export.ts` pushTenderToOdoo); connection test in Settings per ironclad plan.
+4. **Excel export** — Export tab has 3-sheet Excel download.
+5. **Rate cards** — Settings: full upload/list/delete per ironclad A3.
+6. **Batch operations** — **Done.** Export All (Excel) and Push All Qualified (Odoo, score ≥ 70) on Dashboard and Tenders list; see `src/app/actions/export.ts` and `src/components/export/BatchExportActions.tsx`.
+7. **Upload as page** — Currently `/upload` is a full page. IA-correct: 3 nav pages (Dashboard, Tenders, Settings) + "رفع منافسة" as button→modal (optional refactor).
+8. **Design system usage** — Phase 3.4 should migrate existing pages to design system components.
+
+---
+
+## Environment — CRITICAL RULES
+
+> **READ THIS FIRST. These are non-negotiable project constraints.**
+
+| Rule | Detail |
+|------|--------|
+| **Supabase is LOCAL only** | No remote/cloud project. Everything runs via `npx supabase start` / `npx supabase db reset`. Never use `npx supabase db push` or `--project-id`. |
+| **No remote auth** | Auth is local Supabase auth. No third-party auth providers. |
+| **Apply migrations locally** | `npx supabase db reset` to apply all migrations from scratch on local DB. |
+| **Local dashboard** | Supabase Studio at `http://localhost:54323` (default local port). |
+| **No deployment yet** | Everything runs on `localhost:3000`. No Vercel deploy until demo day. |
 
 ---
 
@@ -268,8 +293,8 @@ toast.success("تم الحفظ بنجاح")
 | Styling | Tailwind CSS 4, RTL-first |
 | Design System | 22 custom components (CVA + Tailwind) |
 | State | Zustand (persisted) |
-| Database | Supabase PostgreSQL |
-| Auth | Supabase Auth (email/password + RLS) |
+| Database | Supabase PostgreSQL (**LOCAL** — `npx supabase start`) |
+| Auth | Supabase Auth (**LOCAL** — email/password + RLS) |
 | AI Primary | Google Gemini 2.5 Flash (AI Studio free tier) |
 | AI Backup | Groq (Llama 3.3 70B) |
 | Files | SheetJS (Excel/CSV), Gemini (PDF extraction) |
@@ -277,7 +302,7 @@ toast.success("تم الحفظ بنجاح")
 | Icons | Lucide React |
 | Toasts | Sonner |
 | Package Manager | pnpm |
-| Deploy Target | Vercel |
+| Deploy Target | Vercel (demo day only) |
 
 ---
 
@@ -292,6 +317,7 @@ src/
     actions/
       analyze.ts            <- AI analysis server action
       tenders.ts            <- Tender CRUD server actions
+      export.ts             <- Excel (single + batch), Odoo push (single + Push All Qualified)
     api/
       ai/extract/route.ts   <- PDF extraction API endpoint
     globals.css             <- Design tokens (navy/gold/spacing/animations)
@@ -331,8 +357,10 @@ src/
       StatCard.tsx          <- Single stat widget
       StatsRow.tsx          <- 4-stat grid
       RecentTenders.tsx     <- Recent tender list
-      PipelineSummary.tsx   <- Pipeline stage counts
+      ExportSummary.tsx     <- Odoo export count, link to /tenders (dashboard; no /pipeline)
       ScoreDistribution.tsx <- Score histogram
+    export/
+      BatchExportActions.tsx <- Export All (Excel) + Push All Qualified (Odoo) — Dashboard & Tenders list
     settings/
       AIProviderConfig.tsx  <- Gemini/Groq toggle
       ScoringWeights.tsx    <- 5 criteria weights

@@ -8,6 +8,9 @@
  */
 
 import type { AIAnalysisResult, ExtractionResult } from "./provider";
+import type { ExtractedSections, BOQItem } from "@/types/extracted-sections";
+import type { SpecCardResponse, NominationResponse } from "./parser";
+import type { SpecCard } from "@/types/spec-cards";
 
 // ---------------------------------------------------------------------------
 // 1. ANALYSIS VERIFICATION
@@ -229,6 +232,100 @@ export function verifyExtraction(
     }
   }
 
+  // --- Verify extracted sections ---
+  if (corrected.extracted_sections) {
+    const { corrected: fixedSections, corrections: sectionCorr } =
+      verifySections(corrected.extracted_sections as ExtractedSections);
+    corrected.extracted_sections = fixedSections;
+    corrections.push(...sectionCorr);
+  }
+
+  return { corrected, corrections };
+}
+
+// ---------------------------------------------------------------------------
+// 2b. EXTRACTED SECTIONS VERIFICATION
+// ---------------------------------------------------------------------------
+
+const MIN_SECTION_CONFIDENCE = 20;
+
+function verifySections(
+  sections: ExtractedSections
+): { corrected: ExtractedSections | null; corrections: string[] } {
+  const corrections: string[] = [];
+  const corrected = structuredClone(sections);
+
+  // Contract terms: percentages 0-100
+  if (corrected.contract_terms) {
+    const ct = corrected.contract_terms;
+    const pctKeys = [
+      "initial_guarantee_percent",
+      "final_guarantee_percent",
+      "delay_penalty_percent",
+      "delay_penalty_max_percent",
+      "advance_payment_percent",
+      "retention_percent",
+    ] as const;
+    for (const key of pctKeys) {
+      const val = ct[key];
+      if (val != null && (val < 0 || val > 100)) {
+        corrections.push(`تصحيح ${key}: ${val}% خارج النطاق 0-100`);
+        (ct as Record<string, unknown>)[key] = null;
+      }
+    }
+    // Execution period sanity: 7 days to 5 years
+    if (ct.execution_period_days != null && (ct.execution_period_days < 7 || ct.execution_period_days > 1825)) {
+      corrections.push(`تحذير: مدة التنفيذ ${ct.execution_period_days} يوم غير معتادة`);
+    }
+    // Null out section if confidence too low
+    if (ct.confidence < MIN_SECTION_CONFIDENCE) {
+      corrections.push(`إلغاء قسم شروط التعاقد: ثقة ${ct.confidence}% أقل من الحد`);
+      corrected.contract_terms = null;
+    }
+  }
+
+  // Evaluation method: weights should sum to ~100
+  if (corrected.evaluation_method) {
+    const em = corrected.evaluation_method;
+    if (em.financial_weight != null && em.technical_weight != null) {
+      const sum = em.financial_weight + em.technical_weight;
+      if (Math.abs(sum - 100) > 5) {
+        corrections.push(
+          `تحذير: مجموع أوزان التقييم (${em.financial_weight}% + ${em.technical_weight}% = ${sum}%) لا يساوي 100%`
+        );
+      }
+    }
+    if (em.confidence < MIN_SECTION_CONFIDENCE) {
+      corrections.push(`إلغاء قسم آلية التقييم: ثقة ${em.confidence}% أقل من الحد`);
+      corrected.evaluation_method = null;
+    }
+  }
+
+  // Qualifications: null out if too low confidence
+  if (corrected.qualifications && corrected.qualifications.confidence < MIN_SECTION_CONFIDENCE) {
+    corrections.push(`إلغاء قسم المتطلبات التأهيلية: ثقة ${corrected.qualifications.confidence}% أقل من الحد`);
+    corrected.qualifications = null;
+  }
+
+  // Technical specs: null out if too low confidence
+  if (corrected.technical_specs && corrected.technical_specs.confidence < MIN_SECTION_CONFIDENCE) {
+    corrections.push(`إلغاء قسم المواصفات الفنية: ثقة ${corrected.technical_specs.confidence}% أقل من الحد`);
+    corrected.technical_specs = null;
+  }
+
+  // BOQ: null out if too low confidence
+  if (corrected.boq && corrected.boq.confidence < MIN_SECTION_CONFIDENCE) {
+    corrections.push(`إلغاء قسم جدول الكميات: ثقة ${corrected.boq.confidence}% أقل من الحد`);
+    corrected.boq = null;
+  }
+
+  // If all sections are null, return null
+  const allNull = !corrected.boq && !corrected.technical_specs &&
+    !corrected.qualifications && !corrected.contract_terms && !corrected.evaluation_method;
+  if (allNull) {
+    return { corrected: null, corrections };
+  }
+
   return { corrected, corrections };
 }
 
@@ -278,4 +375,166 @@ function normalizeArabic(text: string): string {
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
+}
+
+// ---------------------------------------------------------------------------
+// 4. SPEC CARDS VERIFICATION (Phase 3.4)
+// ---------------------------------------------------------------------------
+
+interface SpecCardsVerification {
+  verified: SpecCardResponse[];
+  corrections: string[];
+}
+
+/**
+ * Verify spec cards against BOQ items.
+ * - Each card maps to a valid BOQ item by boq_seq
+ * - Clamp ai_confidence 0-100
+ * - Ensure parameters array exists
+ * - Flag cards with 0 parameters as low confidence
+ */
+export function verifySpecCards(
+  cards: SpecCardResponse[],
+  boqItems: BOQItem[]
+): SpecCardsVerification {
+  const corrections: string[] = [];
+  const boqSeqs = new Set(boqItems.map((b) => b.seq));
+
+  const verified = cards.map((card) => {
+    const corrected = { ...card };
+
+    // Verify boq_seq maps to a valid BOQ item
+    if (!boqSeqs.has(card.boq_seq)) {
+      corrections.push(
+        `تحذير: بطاقة مواصفات boq_seq=${card.boq_seq} لا تتطابق مع أي بند في جدول الكميات`
+      );
+    }
+
+    // Clamp ai_confidence to 0-100
+    const clamped = Math.max(0, Math.min(100, card.confidence));
+    if (clamped !== card.confidence) {
+      corrections.push(
+        `تصحيح ثقة بطاقة boq_seq=${card.boq_seq}: ${card.confidence} → ${clamped} (خارج النطاق 0-100)`
+      );
+      corrected.confidence = clamped;
+    }
+
+    // Ensure parameters array exists
+    if (!Array.isArray(corrected.parameters)) {
+      corrections.push(
+        `تصحيح بطاقة boq_seq=${card.boq_seq}: parameters ليست مصفوفة — تم تعيينها كمصفوفة فارغة`
+      );
+      corrected.parameters = [];
+    }
+
+    // Flag cards with 0 parameters as low confidence
+    if (corrected.parameters.length === 0 && corrected.confidence > 40) {
+      corrections.push(
+        `تصحيح ثقة بطاقة boq_seq=${card.boq_seq}: لا توجد معاملات — خفض الثقة من ${corrected.confidence} إلى 30`
+      );
+      corrected.confidence = 30;
+    }
+
+    // Ensure arrays are arrays (not null)
+    if (!Array.isArray(corrected.referenced_standards)) corrected.referenced_standards = [];
+    if (!Array.isArray(corrected.approved_brands)) corrected.approved_brands = [];
+    if (!Array.isArray(corrected.constraints)) corrected.constraints = [];
+
+    return corrected;
+  });
+
+  return { verified, corrections };
+}
+
+// ---------------------------------------------------------------------------
+// 5. NOMINATIONS VERIFICATION (Phase 3.4)
+// ---------------------------------------------------------------------------
+
+interface NominationsVerification {
+  verified: NominationResponse[];
+  corrections: string[];
+}
+
+/**
+ * Verify product nominations against a spec card.
+ * - Recalculate compliance_score from compliance_details (mandatory params met / total mandatory)
+ * - Clamp compliance_score 0-100
+ * - Validate prices are non-negative if present
+ * - Ensure rank ordering
+ */
+export function verifyNominations(
+  nominations: NominationResponse[],
+  specCard: SpecCard
+): NominationsVerification {
+  const corrections: string[] = [];
+
+  // Get mandatory parameters from spec card
+  const mandatoryParams = Array.isArray(specCard.parameters)
+    ? specCard.parameters.filter((p) => p.is_mandatory)
+    : [];
+  const totalMandatory = mandatoryParams.length;
+
+  const verified = nominations.map((nom, idx) => {
+    const corrected = { ...nom };
+
+    // Recalculate compliance_score from compliance_details
+    if (totalMandatory > 0 && Array.isArray(corrected.compliance_details) && corrected.compliance_details.length > 0) {
+      const mandatoryMet = corrected.compliance_details.filter(
+        (d) => d.meets_spec && mandatoryParams.some((p) => p.name === d.parameter)
+      ).length;
+      const recalculated = Math.round((mandatoryMet / totalMandatory) * 100);
+
+      if (Math.abs(recalculated - corrected.compliance_score) > 10) {
+        corrections.push(
+          `تصحيح درجة المطابقة لـ "${corrected.product_name}": ${corrected.compliance_score} → ${recalculated} (إعادة حساب من المعاملات الإلزامية)`
+        );
+        corrected.compliance_score = recalculated;
+      }
+    }
+
+    // Clamp compliance_score to 0-100
+    const clamped = Math.max(0, Math.min(100, corrected.compliance_score));
+    if (clamped !== corrected.compliance_score) {
+      corrections.push(
+        `تصحيح درجة المطابقة لـ "${corrected.product_name}": ${corrected.compliance_score} → ${clamped} (خارج النطاق 0-100)`
+      );
+      corrected.compliance_score = clamped;
+    }
+
+    // Validate prices are non-negative if present
+    if (corrected.estimated_price != null && corrected.estimated_price < 0) {
+      corrections.push(
+        `تصحيح سعر "${corrected.product_name}": ${corrected.estimated_price} → null (سعر سالب)`
+      );
+      corrected.estimated_price = null;
+    }
+
+    // Ensure compliance_details is an array
+    if (!Array.isArray(corrected.compliance_details)) {
+      corrected.compliance_details = [];
+    }
+
+    // Ensure rank ordering (1-based)
+    if (!corrected.rank || corrected.rank < 1) {
+      corrected.rank = idx + 1;
+    }
+
+    return corrected;
+  });
+
+  // Re-sort by rank and fix any duplicate ranks
+  verified.sort((a, b) => a.rank - b.rank);
+  const usedRanks = new Set<number>();
+  for (const nom of verified) {
+    if (usedRanks.has(nom.rank)) {
+      const newRank = Math.max(...Array.from(usedRanks)) + 1;
+      corrections.push(
+        `تصحيح ترتيب "${nom.product_name}": تكرار rank=${nom.rank} → ${newRank}`
+      );
+      nom.rank = newRank;
+    }
+    usedRanks.add(nom.rank);
+  }
+
+  return { verified, corrections };
 }
