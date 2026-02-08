@@ -1,7 +1,9 @@
 /**
  * Extract raw text from a PDF buffer using pdf-parse v2.
  * Runs entirely in Node.js — no API calls, no network cost.
+ * DOMMatrix polyfill must run before pdf-parse loads (Node has no DOMMatrix).
  */
+import "./dom-matrix-polyfill";
 import { PDFParse } from "pdf-parse";
 
 export interface PDFTextResult {

@@ -1,3 +1,4 @@
+import "@/lib/pdf/dom-matrix-polyfill";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai/provider";
