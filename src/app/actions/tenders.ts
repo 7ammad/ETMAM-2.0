@@ -76,17 +76,18 @@ export async function savePdfTender(input: {
   extraction_warnings: string[];
   source_file_name: string;
 }): Promise<SavePdfTenderResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    console.error("[savePdfTender] Auth failed:", authError?.message ?? "no user");
-    return { success: false, error: "يجب تسجيل الدخول" };
-  }
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error("[savePdfTender] Auth failed:", authError?.message ?? "no user");
+      return { success: false, error: "يجب تسجيل الدخول" };
+    }
 
-  const deadline = normalizeDeadline(input.deadline);
+    const deadline = normalizeDeadline(input.deadline);
   if (!deadline) {
     return { success: false, error: "صيغة التاريخ غير صحيحة. استخدم YYYY-MM-DD أو DD/MM/YYYY" };
   }
@@ -195,9 +196,14 @@ export async function savePdfTender(input: {
     }
   }
 
-  revalidatePath("/tenders");
-  revalidatePath("/dashboard");
-  return { success: true, tenderId: data.id };
+    revalidatePath("/tenders");
+    revalidatePath("/dashboard");
+    return { success: true, tenderId: data.id };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[savePdfTender] Exception:", msg);
+    return { success: false, error: "فشل حفظ المنافسة: " + msg };
+  }
 }
 
 export type UploadTendersResult =

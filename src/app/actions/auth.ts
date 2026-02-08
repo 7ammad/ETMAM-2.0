@@ -29,11 +29,12 @@ export async function login(
       if (error.message.includes("Invalid login credentials")) {
         return { error: "بيانات الدخول غير صحيحة" };
       }
-      return { error: "حدث خطأ أثناء تسجيل الدخول" };
+      return { error: "حدث خطأ أثناء تسجيل الدخول: " + error.message };
     }
     success = true;
-  } catch {
-    return { error: "حدث خطأ أثناء تسجيل الدخول" };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: "حدث خطأ أثناء تسجيل الدخول: " + msg };
   }
   if (success) {
     redirect("/dashboard");
@@ -74,11 +75,12 @@ export async function register(
       if (error.message.includes("already registered")) {
         return { error: "البريد الإلكتروني مسجل بالفعل" };
       }
-      return { error: "حدث خطأ أثناء إنشاء الحساب" };
+      return { error: "حدث خطأ أثناء إنشاء الحساب: " + error.message };
     }
     success = true;
-  } catch {
-    return { error: "حدث خطأ أثناء إنشاء الحساب" };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: "حدث خطأ أثناء إنشاء الحساب: " + msg };
   }
   if (success) {
     redirect("/dashboard");

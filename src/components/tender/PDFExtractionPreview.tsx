@@ -109,8 +109,9 @@ export function PDFExtractionPreview({
       } else {
         setError(result.error);
       }
-    } catch {
-      setError("حدث خطأ أثناء الحفظ");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError("حدث خطأ أثناء الحفظ: " + message);
     } finally {
       setSaving(false);
     }
