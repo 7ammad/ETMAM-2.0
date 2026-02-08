@@ -72,9 +72,10 @@ export const colors = {
 
 export const typography = {
   fontFamily: {
-    sans: '"Inter", "Noto Sans Arabic", system-ui, -apple-system, sans-serif',
+    sans: '"Noto Kufi Arabic", "Cairo", system-ui, -apple-system, sans-serif',
     mono: '"JetBrains Mono", "Fira Code", monospace',
-    arabic: '"Noto Sans Arabic", "Segoe UI", "Tahoma", sans-serif',
+    arabic: '"Noto Kufi Arabic", "Segoe UI", "Tahoma", sans-serif',
+    english: '"Cairo", "Noto Kufi Arabic", system-ui, sans-serif',
   },
 
   fontSize: {

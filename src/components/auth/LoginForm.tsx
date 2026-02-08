@@ -3,11 +3,14 @@
 import { useActionState } from "react";
 import { login } from "@/app/actions/auth";
 import Link from "next/link";
+import { useLanguageStore } from "@/stores/language-store";
+import { ts } from "@/lib/i18n";
 
 const initialState: { error?: string } = { error: undefined };
 
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState(login, initialState);
+  const lang = useLanguageStore((s) => s.lang);
 
   return (
     <form action={formAction} className="w-full max-w-sm space-y-4">
@@ -16,7 +19,7 @@ export function LoginForm() {
           htmlFor="email"
           className="block text-sm font-medium text-foreground"
         >
-          البريد الإلكتروني
+          {ts("email", lang)}
         </label>
         <input
           id="email"
@@ -35,7 +38,7 @@ export function LoginForm() {
           htmlFor="password"
           className="block text-sm font-medium text-foreground"
         >
-          كلمة المرور
+          {ts("password", lang)}
         </label>
         <input
           id="password"
@@ -62,13 +65,13 @@ export function LoginForm() {
         disabled={isPending}
         className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-gold-600 disabled:opacity-50"
       >
-        {isPending ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
+        {isPending ? ts("loggingIn", lang) : ts("loginBtn", lang)}
       </button>
 
       <p className="text-center text-sm text-muted-foreground">
-        ليس لديك حساب؟{" "}
+        {ts("noAccount", lang)}{" "}
         <Link href="/register" className="text-gold-500 hover:underline">
-          إنشاء حساب
+          {ts("createAccount", lang)}
         </Link>
       </p>
     </form>

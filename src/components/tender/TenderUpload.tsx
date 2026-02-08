@@ -10,6 +10,7 @@ import {
 import { uploadTenders } from "@/app/actions/tenders";
 import type { ExtractionResult } from "@/lib/ai/provider";
 import { PDFExtractionPreview } from "./PDFExtractionPreview";
+import { toast } from "@/components/ui/toast";
 import {
   MAX_FILE_SIZE_MB,
   MAX_PDF_SIZE_MB,
@@ -121,7 +122,7 @@ export function TenderUpload({ initialFile, onBack }: TenderUploadProps) {
           count === 1
             ? "تم رفع منافسة واحدة بنجاح"
             : `تم رفع ${count} منافسة بنجاح`;
-        alert(msg);
+        toast.success(msg);
         onBack();
         router.push("/tenders");
         router.refresh();

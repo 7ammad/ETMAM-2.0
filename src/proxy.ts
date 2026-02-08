@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-const protectedRoutePrefixes = ["/dashboard", "/tenders", "/pipeline", "/settings"];
+const protectedRoutePrefixes = ["/dashboard", "/tenders", "/settings"];
 const publicAuthRoutes = ["/login", "/register"];
 
 function isProtectedPath(pathname: string): boolean {

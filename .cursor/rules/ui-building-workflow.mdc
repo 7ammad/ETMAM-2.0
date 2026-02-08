@@ -1,0 +1,39 @@
+---
+alwaysApply: true
+---
+# Default UI Building Workflow
+
+When building or changing UI (screens, components, user flows), follow this sequence. Invoke subagents by name (e.g. **@ux-researcher**, **@art-director**).
+
+## Steps
+
+1. **READ** — Read specs (PRD, FRONTEND, IMPLEMENTATION or equivalent). Confirm scope and acceptance criteria before coding.
+
+2. **UX** — Invoke **@ux-researcher** for the screen/flow:
+   - Heuristic evaluation (e.g. Nielsen), user flow, accessibility (WCAG 2.1 AA).
+   - Output: prioritized findings and recommendations.
+
+3. **Art direction** — Invoke **@art-director**:
+   - Visual hierarchy, component specs (shadcn/ui + Tailwind), design tokens, states (loading/error/empty), RTL if applicable.
+   - Output: implementation-ready specs (components, classes, breakpoints).
+
+4. **IMPLEMENT** — Implement UI per art-director specs and UX recommendations. Use **@senior-frontend** or implement in main context; follow existing design system.
+
+5. **SELF-CHECK** — Before calling done:
+   - Run project checklist (e.g. phase completion) if applicable.
+   - Use **playwright-cli** for browser-level check: `playwright-cli open <url>`, `snapshot`, then exercise key flows (click, fill, submit). Use `screenshot` for critical screens if needed.
+
+6. **HARD REVIEW** — Invoke **@code-reviewer** with the changed files and scope. Resolve any “Blocked” items before sign-off.
+
+7. **SIGN-OFF** — Proceed to next task or phase after review passes.
+
+## Skills and agents
+
+- **ux-researcher** — Must be in the process for UX audit and recommendations.
+- **art-director** — Must be in the process for visual specs and design-system alignment.
+- **playwright-cli** — Part of the workflow: use for snapshots, key flows, and screenshots in self-check.
+- Optional: **@brainstorming** before step 1 for options; **@creative-director** for experience strategy; **@verifier** after implementation; **@qa-engineer** for test plan.
+
+## Shortcut (small UI tweaks)
+
+For very small UI tweaks (e.g. one label, one spacing fix), you may skip UX and art-director and go: READ → IMPLEMENT → self-check (including playwright-cli if it’s a visible flow) → review. For new screens, flows, or design-system changes, use the full 7-step workflow.

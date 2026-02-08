@@ -23,7 +23,9 @@ import {
   nominateProductsBatch,
   listNominationsByTender,
   selectNomination,
+  selectAllBestNominations,
   addManualNomination,
+  updateNomination,
   deleteNomination,
   applyNominationsToCostItems,
 } from "@/app/actions/nominations";
@@ -35,11 +37,15 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
+  Pencil,
+  CheckCheck,
+  ArrowLeft,
 } from "lucide-react";
 
 interface NominationsTabProps {
   tenderId: string;
   tender: Tender;
+  onNavigateToCosts?: () => void;
 }
 
 function SourceBadge({ source }: { source: ProductNomination["source"] }) {
@@ -118,7 +124,7 @@ function ComplianceTable({ details }: { details: ComplianceDetail[] }) {
   );
 }
 
-export function NominationsTab({ tenderId, tender }: NominationsTabProps) {
+export function NominationsTab({ tenderId, tender, onNavigateToCosts }: NominationsTabProps) {
   const [nominations, setNominations] = useState<ProductNomination[]>([]);
   const [specCards, setSpecCards] = useState<SpecCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,6 +145,21 @@ export function NominationsTab({ tenderId, tender }: NominationsTabProps) {
     unit_price: "",
   });
   const [manualSubmitting, setManualSubmitting] = useState(false);
+
+  // Edit dialog
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editNominationId, setEditNominationId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    product_name: "",
+    brand: "",
+    model_sku: "",
+    distributor: "",
+    unit_price: "",
+  });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  // Select all
+  const [selectingAll, setSelectingAll] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -269,6 +290,8 @@ export function NominationsTab({ tenderId, tender }: NominationsTabProps) {
       const result = await applyNominationsToCostItems(tenderId);
       if (!result.success) {
         setError(result.error);
+      } else {
+        onNavigateToCosts?.();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "حدث خطأ في تطبيق الترشيحات");
@@ -316,6 +339,64 @@ export function NominationsTab({ tenderId, tender }: NominationsTabProps) {
       setError(err instanceof Error ? err.message : "حدث خطأ");
     } finally {
       setManualSubmitting(false);
+    }
+  }
+
+  function openEditDialog(nom: ProductNomination) {
+    setEditNominationId(nom.id);
+    setEditForm({
+      product_name: nom.product_name ?? "",
+      brand: nom.brand ?? "",
+      model_sku: nom.model_sku ?? "",
+      distributor: nom.distributor ?? "",
+      unit_price: nom.unit_price != null ? String(nom.unit_price) : "",
+    });
+    setShowEditDialog(true);
+  }
+
+  async function handleEditSubmit() {
+    if (!editNominationId || !editForm.product_name.trim()) return;
+    setEditSubmitting(true);
+    setError(null);
+    try {
+      const priceVal = editForm.unit_price.trim()
+        ? parseFloat(editForm.unit_price.replace(/[,،]/g, ""))
+        : undefined;
+      const result = await updateNomination({
+        id: editNominationId,
+        product_name: editForm.product_name.trim(),
+        brand: editForm.brand.trim() || undefined,
+        model_sku: editForm.model_sku.trim() || undefined,
+        distributor: editForm.distributor.trim() || undefined,
+        unit_price: priceVal != null && !Number.isNaN(priceVal) ? priceVal : undefined,
+      });
+      if (!result.success) {
+        setError(result.error);
+      } else {
+        setShowEditDialog(false);
+        await load();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "حدث خطأ");
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+
+  async function handleSelectAll() {
+    setSelectingAll(true);
+    setError(null);
+    try {
+      const result = await selectAllBestNominations(tenderId);
+      if (!result.success) {
+        setError(result.error);
+      } else {
+        await load();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "حدث خطأ");
+    } finally {
+      setSelectingAll(false);
     }
   }
 
@@ -370,6 +451,18 @@ export function NominationsTab({ tenderId, tender }: NominationsTabProps) {
           <Search className="h-4 w-4 ml-1" />
           بحث وترشيح
         </Button>
+        {nominations.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSelectAll}
+            disabled={selectingAll}
+            isLoading={selectingAll}
+          >
+            <CheckCheck className="h-4 w-4 ml-1" />
+            اختيار الكل
+          </Button>
+        )}
         {selectedCount > 0 && (
           <Button
             variant="outline"
@@ -489,7 +582,7 @@ export function NominationsTab({ tenderId, tender }: NominationsTabProps) {
                           <p className="text-sm text-foreground">
                             <span className="text-muted-foreground">السعر: </span>
                             <span className="font-medium ltr-nums" dir="ltr">
-                              {Number(nom.unit_price).toLocaleString("ar-SA")}
+                              {Number(nom.unit_price).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                             <span className="text-muted-foreground mr-1">
                               {nom.currency ?? "SAR"}
@@ -545,6 +638,14 @@ export function NominationsTab({ tenderId, tender }: NominationsTabProps) {
                           <Button
                             variant="ghost"
                             size="icon-sm"
+                            onClick={() => openEditDialog(nom)}
+                            aria-label="تعديل"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => handleDeleteNomination(nom.id)}
                             disabled={actionLoading === `del-${nom.id}`}
                             isLoading={actionLoading === `del-${nom.id}`}
@@ -596,24 +697,36 @@ export function NominationsTab({ tenderId, tender }: NominationsTabProps) {
                     الاجمالي التقديري:{" "}
                   </span>
                   <span className="font-semibold ltr-nums" dir="ltr">
-                    {estimatedTotal.toLocaleString("ar-SA")}
+                    {estimatedTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   <span className="text-muted-foreground mr-1">SAR</span>
                 </p>
               )}
             </div>
-            {selectedCount > 0 && (
-              <Button
-                variant="primary"
-                size="md"
-                onClick={handleApplyToCosts}
-                disabled={applying}
-                isLoading={applying}
-              >
-                <ArrowLeftRight className="h-4 w-4 ml-1" />
-                تطبيق على التكاليف
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {selectedCount > 0 && (
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={handleApplyToCosts}
+                  disabled={applying}
+                  isLoading={applying}
+                >
+                  <ArrowLeftRight className="h-4 w-4 ml-1" />
+                  تطبيق على التكاليف
+                </Button>
+              )}
+              {onNavigateToCosts && (
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={onNavigateToCosts}
+                >
+                  التالي: التكاليف
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -693,6 +806,86 @@ export function NominationsTab({ tenderId, tender }: NominationsTabProps) {
               isLoading={manualSubmitting}
             >
               اضافة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit nomination dialog */}
+      <Dialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+      >
+        <DialogContent title="تعديل الترشيح" description="تعديل بيانات المنتج">
+          <div className="space-y-4" dir="rtl">
+            <FormField label="اسم المنتج" name="edit_product_name" required>
+              <Input
+                id="edit_product_name"
+                value={editForm.product_name}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, product_name: e.target.value }))
+                }
+                placeholder="اسم المنتج"
+              />
+            </FormField>
+            <FormField label="العلامة التجارية" name="edit_brand">
+              <Input
+                id="edit_brand"
+                value={editForm.brand}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, brand: e.target.value }))
+                }
+                placeholder="اختياري"
+              />
+            </FormField>
+            <FormField label="الموديل / SKU" name="edit_model_sku">
+              <Input
+                id="edit_model_sku"
+                value={editForm.model_sku}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, model_sku: e.target.value }))
+                }
+                placeholder="اختياري"
+              />
+            </FormField>
+            <FormField label="الموزع" name="edit_distributor">
+              <Input
+                id="edit_distributor"
+                value={editForm.distributor}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, distributor: e.target.value }))
+                }
+                placeholder="اختياري"
+              />
+            </FormField>
+            <FormField label="السعر" name="edit_unit_price">
+              <Input
+                id="edit_unit_price"
+                type="text"
+                inputMode="decimal"
+                value={editForm.unit_price}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, unit_price: e.target.value }))
+                }
+                placeholder="اختياري"
+                className="ltr"
+              />
+            </FormField>
+          </div>
+          <DialogFooter>
+            <DialogClose>
+              <Button variant="ghost" size="sm">
+                الغاء
+              </Button>
+            </DialogClose>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleEditSubmit}
+              disabled={editSubmitting || !editForm.product_name.trim()}
+              isLoading={editSubmitting}
+            >
+              حفظ
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -105,6 +105,20 @@ For each workflow, **dispatch in this order**. Each row = one invocation: use **
 | 4 | **@senior-frontend** | "Implement the UX improvements per the specs." |
 | 5 | **@qa-engineer** | "Usability verification: confirm improvements and no regressions." |
 
+### 3.7 UI Building (Default UI Workflow — All Projects)
+
+Use this when **building or changing UI** (new screens, components, flows). Ensures **ux-researcher** and **art-director** are in the process; **playwright-cli** is used in self-check. See `.cursor/rules/ui-building-workflow.mdc`.
+
+| Step | Invoke | Prompt |
+|------|--------|--------|
+| 1 | (You or **@project-lead**) | "We are building UI: [screen/flow]. Confirm scope from PRD/FRONTEND/IMPLEMENTATION." |
+| 2 | **@ux-researcher** | "Heuristic evaluation and UX findings for [screen/flow]. Include accessibility (WCAG 2.1 AA) and RTL if applicable. Prioritize issues and recommend improvements." |
+| 3 | **@art-director** | "Visual specs for [screen/flow]: hierarchy, components (shadcn/ui + Tailwind), tokens, states (loading/error/empty), RTL. Implementation-ready output." |
+| 4 | **@senior-frontend** | "Implement [screen/flow] per art-director specs and ux-researcher recommendations. Follow existing design system." |
+| 5 | (Implementer) | "Self-check: run phase checklist if any. Use **playwright-cli**: open app URL, snapshot, exercise key flows (click, fill), take screenshots for critical screens." |
+| 6 | **@code-reviewer** | "Review the UI implementation for [screen/flow]. Run HARD-REVIEW-CHECKLIST. Sign-off or Blocked with list." |
+| 7 | (You / **@project-lead**) | "Sign off and proceed." |
+
 ### 3.5 Pre-Launch Checklist (Parallel or Sequential)
 
 Invoke each agent with the prompt below; **gotcha** after any report-producing agent.
@@ -140,7 +154,7 @@ To let **project-lead** drive the workflow, invoke it once with:
 ```
 You are the project lead. Our goal: [e.g. "Build the Export tab and Excel/Odoo per PRD 6A+6B"].
 
-1. Choose the workflow that fits (New Feature, Bug Fix, Architecture Review, Implementation Phase, etc.).
+1. Choose the workflow that fits (New Feature, Bug Fix, Architecture Review, UX Improvement, **UI Building**, Implementation Phase, etc.).
 2. Output the workflow name and the exact sequence of agents to invoke.
 3. For the NEXT step only, output:
    - Invoke: @<agent-name>

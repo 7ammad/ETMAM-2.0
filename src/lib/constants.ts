@@ -3,17 +3,6 @@ export const APP_NAME_EN = "Etmam";
 export const APP_DESCRIPTION =
   "نظام ذكي لإدارة المنافسات الحكومية — من الملف إلى الفرصة في دقائق";
 
-export const PIPELINE_STAGES = [
-  { id: "new", label: "New", labelAr: "جديد", color: "gray" },
-  { id: "scored", label: "Scored", labelAr: "مُقيّم", color: "purple" },
-  { id: "approved", label: "Approved", labelAr: "معتمد", color: "blue" },
-  { id: "pushed", label: "Pushed to CRM", labelAr: "تم الدفع", color: "green" },
-  { id: "won", label: "Won", labelAr: "فاز", color: "gold" },
-  { id: "lost", label: "Lost", labelAr: "خسر", color: "red" },
-] as const;
-
-export type PipelineStageId = (typeof PIPELINE_STAGES)[number]["id"];
-
 export const DEFAULT_SCORING_WEIGHTS = {
   relevance: 25,
   budgetFit: 25,

@@ -144,26 +144,30 @@ export async function analyzeTender(
       verification_corrections: allWarnings.length > 0 ? allWarnings : undefined,
     } as Record<string, unknown>;
 
+    // INSERT (not upsert) to preserve re-evaluation history
+    // The UNIQUE(tender_id) constraint was dropped in migration 20260207100000
     const { data: evalRow, error: evalError } = await supabase
       .from("evaluations")
-      .upsert(
-        {
-          tender_id: tenderId,
-          user_id: user.id,
-          criteria_scores: criteriaScores,
-          overall_score: Math.round(result.overall_score),
-          auto_recommendation: autoRecommendation,
-          manual_override: null,
-          override_reason: null,
-          preset_id: null,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "tender_id" }
-      )
+      .insert({
+        tender_id: tenderId,
+        user_id: user.id,
+        criteria_scores: criteriaScores,
+        overall_score: Math.round(result.overall_score),
+        auto_recommendation: autoRecommendation,
+        manual_override: null,
+        override_reason: null,
+        preset_id: null,
+        updated_at: new Date().toISOString(),
+      })
       .select("id")
       .single();
 
     if (evalError) {
+      console.error("[analyzeTender] Failed to insert evaluation:", {
+        tenderId,
+        userId: user.id,
+        error: evalError,
+      });
       return {
         success: false,
         error: "فشل حفظ التقييم: " + evalError.message,

@@ -21,8 +21,6 @@ export interface Database {
       rate_card_items: { Row: RateCardItem; Insert: RateCardItemInsert; Update: RateCardItemUpdate };
       evaluation_presets: { Row: EvaluationPreset; Insert: EvaluationPresetInsert; Update: EvaluationPresetUpdate };
       extraction_cache: { Row: ExtractionCache; Insert: ExtractionCacheInsert; Update: ExtractionCacheUpdate };
-      pipeline_stages: { Row: PipelineStage; Insert: PipelineStageInsert; Update: PipelineStageUpdate };
-      pipeline_entries: { Row: PipelineEntry; Insert: PipelineEntryInsert; Update: PipelineEntryUpdate };
       spec_cards: { Row: SpecCard; Insert: SpecCardInsert; Update: SpecCardUpdate };
       product_nominations: { Row: ProductNomination; Insert: ProductNominationInsert; Update: ProductNominationUpdate };
     };
@@ -203,25 +201,3 @@ export interface ExtractionCache {
 export type ExtractionCacheInsert = Omit<ExtractionCache, "id" | "created_at"> & { id?: string; created_at?: string };
 export type ExtractionCacheUpdate = Partial<Omit<ExtractionCache, "id" | "file_hash">>;
 
-// --- Pipeline (Phase 2.3) ---
-export interface PipelineStage {
-  id: string;
-  name: string;
-  name_ar: string;
-  display_order: number;
-  color: string;
-  created_at: string;
-}
-export type PipelineStageInsert = Omit<PipelineStage, "created_at"> & { created_at?: string };
-export type PipelineStageUpdate = Partial<Omit<PipelineStage, "id">>;
-
-export interface PipelineEntry {
-  id: string;
-  tender_id: string;
-  stage_id: string;
-  user_id: string;
-  moved_at: string;
-  notes: string | null;
-}
-export type PipelineEntryInsert = Omit<PipelineEntry, "id" | "moved_at"> & { id?: string; moved_at?: string };
-export type PipelineEntryUpdate = Partial<Omit<PipelineEntry, "id" | "tender_id" | "user_id">>;

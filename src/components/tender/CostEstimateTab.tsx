@@ -18,6 +18,11 @@ import { Plus, Trash2, Search, FileDown } from "lucide-react";
 
 const DEFAULT_PROFIT_MARGIN_PERCENT = 15;
 
+/** Format number with Western numerals + comma separators (never Arabic-Indic ٠١٢) */
+function fmtNum(n: number): string {
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 interface CostEstimateTabProps {
   tenderId: string;
   tender: Tender;
@@ -66,6 +71,7 @@ export function CostEstimateTab({ tenderId, tender }: CostEstimateTabProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const hasLineItems = Array.isArray(tender.line_items) && tender.line_items.length > 0;
 
@@ -179,11 +185,22 @@ export function CostEstimateTab({ tenderId, tender }: CostEstimateTabProps) {
     }
     setSavingBid(true);
     setError(null);
+    setSaveSuccess(null);
     const result = await updateTenderBidPrice(tenderId, val);
     setSavingBid(false);
-    if (!result.success) setError(result.error);
-    else router.refresh();
+    if (!result.success) {
+      setError(result.error);
+    } else {
+      setSaveSuccess("تم حفظ سعر العرض بنجاح ✓");
+      // Delay router.refresh() to let user see the success message
+      setTimeout(() => {
+        setSaveSuccess(null);
+        router.refresh();
+      }, 3000);
+    }
   }
+
+  const [matchInfo, setMatchInfo] = useState<string | null>(null);
 
   async function handleMatchFromRateCards() {
     if (items.length === 0) {
@@ -192,6 +209,7 @@ export function CostEstimateTab({ tenderId, tender }: CostEstimateTabProps) {
     }
     setMatching(true);
     setError(null);
+    setMatchInfo(null);
     const toMatch = items.map((i) => ({
       description: i.description,
       quantity: i.quantity,
@@ -203,7 +221,22 @@ export function CostEstimateTab({ tenderId, tender }: CostEstimateTabProps) {
       setError(result.error);
       return;
     }
-    if (result.matches.length === 0) return;
+
+    const matchedCount = result.matches.filter((m) => m.matched).length;
+    const total = result.matches.length;
+    const rciCount = result.rateCardItemCount;
+
+    if (rciCount === 0) {
+      setMatchInfo(`لا توجد بطاقات أسعار مرفوعة. ارفع بطاقة أسعار CSV من صفحة الإعدادات أولاً.`);
+      return;
+    }
+
+    if (matchedCount === 0) {
+      setMatchInfo(`لم يتم العثور على تطابق لأي بند من ${total} بنود (تم البحث في ${rciCount} عنصر من بطاقات الأسعار). أوصاف البنود قد تختلف عن أسماء عناصر بطاقة الأسعار.`);
+      return;
+    }
+
+    let updated = 0;
     for (let i = 0; i < result.matches.length; i++) {
       const m = result.matches[i];
       if (m.matched && m.suggested_price != null && m.rate_card_item && items[i]) {
@@ -216,8 +249,11 @@ export function CostEstimateTab({ tenderId, tender }: CostEstimateTabProps) {
             ? `من بطاقة: ${m.rate_card_item.rate_card_name}`
             : null,
         });
+        updated++;
       }
     }
+
+    setMatchInfo(`تم تسعير ${updated} من ${total} بنود من بطاقات الأسعار.`);
     load();
   }
 
@@ -238,6 +274,18 @@ export function CostEstimateTab({ tenderId, tender }: CostEstimateTabProps) {
       {error && (
         <div className="rounded-md border border-red-600/50 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200" role="alert">
           {error}
+        </div>
+      )}
+      {saveSuccess && (
+        <div className="rounded-md border border-green-600/50 bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-200 flex items-center justify-between">
+          <span>{saveSuccess}</span>
+          <button type="button" onClick={() => setSaveSuccess(null)} className="text-green-400 hover:text-green-200 mr-2">✕</button>
+        </div>
+      )}
+      {matchInfo && (
+        <div className="rounded-md border border-blue-600/50 bg-blue-500/10 px-3 py-2 text-sm text-blue-700 dark:text-blue-200 flex items-center justify-between">
+          <span>{matchInfo}</span>
+          <button type="button" onClick={() => setMatchInfo(null)} className="text-blue-400 hover:text-blue-200 mr-2">✕</button>
         </div>
       )}
 
@@ -383,7 +431,7 @@ export function CostEstimateTab({ tenderId, tender }: CostEstimateTabProps) {
                         />
                       </td>
                       <td className="p-3 text-muted-foreground ltr-nums">
-                        {((editRow.quantity ?? 0) * (editRow.unit_price ?? 0)).toLocaleString("ar-SA")}
+                        {fmtNum((editRow.quantity ?? 0) * (editRow.unit_price ?? 0))}
                       </td>
                       <td className="p-2">
                         <div className="flex gap-1">
@@ -423,10 +471,10 @@ export function CostEstimateTab({ tenderId, tender }: CostEstimateTabProps) {
                       <td className="p-3 ltr-nums text-foreground">{item.quantity}</td>
                       <td className="p-3 text-foreground">{item.unit}</td>
                       <td className="p-3 ltr-nums text-foreground">
-                        {Number(item.unit_price).toLocaleString("ar-SA")}
+                        {fmtNum(Number(item.unit_price))}
                       </td>
                       <td className="p-3 ltr-nums text-foreground">
-                        {Number(item.total).toLocaleString("ar-SA")}
+                        {fmtNum(Number(item.total))}
                       </td>
                       <td className="p-3">
                         <div className="flex gap-1">
@@ -467,15 +515,15 @@ export function CostEstimateTab({ tenderId, tender }: CostEstimateTabProps) {
             <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
               <p className="flex justify-between text-foreground">
                 <span className="text-muted-foreground">مجموع التكاليف المباشرة</span>
-                <span className="font-medium ltr-nums">{directSum.toLocaleString("ar-SA")}</span>
+                <span className="font-medium ltr-nums">{fmtNum(directSum)} SAR</span>
               </p>
               <p className="flex justify-between text-foreground">
                 <span className="text-muted-foreground">مجموع التكاليف غير المباشرة</span>
-                <span className="font-medium ltr-nums">{indirectSum.toLocaleString("ar-SA")}</span>
+                <span className="font-medium ltr-nums">{fmtNum(indirectSum)} SAR</span>
               </p>
               <p className="flex justify-between border-t border-border pt-2 font-medium text-foreground">
                 <span>المجموع الفرعي</span>
-                <span className="ltr-nums">{subtotal.toLocaleString("ar-SA")}</span>
+                <span className="ltr-nums">{fmtNum(subtotal)} SAR</span>
               </p>
               <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
                 <label className="text-muted-foreground">هامش الربح %</label>
@@ -493,18 +541,18 @@ export function CostEstimateTab({ tenderId, tender }: CostEstimateTabProps) {
               </div>
               <p className="flex justify-between text-foreground">
                 <span className="text-muted-foreground">مبلغ الربح</span>
-                <span className="font-medium ltr-nums">{profitAmount.toLocaleString("ar-SA")}</span>
+                <span className="font-medium ltr-nums">{fmtNum(profitAmount)} SAR</span>
               </p>
               <p className="flex justify-between border-t border-border pt-2 font-medium text-foreground">
                 <span>سعر العرض النهائي</span>
-                <span className="ltr-nums">{finalBidFromCalc.toLocaleString("ar-SA")}</span>
+                <span className="ltr-nums">{fmtNum(finalBidFromCalc)} SAR</span>
               </p>
             </div>
             <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
               <p className="flex justify-between text-foreground">
                 <span className="text-muted-foreground">القيمة التقديرية للمنافسة</span>
                 <span className="font-medium ltr-nums">
-                  {estimatedValue != null ? estimatedValue.toLocaleString("ar-SA") : "—"}
+                  {estimatedValue != null ? `${fmtNum(estimatedValue)} SAR` : "—"}
                 </span>
               </p>
               {estimatedValue != null && bidPriceNum != null && (
@@ -512,7 +560,7 @@ export function CostEstimateTab({ tenderId, tender }: CostEstimateTabProps) {
                   <p className="flex justify-between text-foreground">
                     <span className="text-muted-foreground">الفرق (مبلغ)</span>
                     <span className={`font-medium ltr-nums ${diffAmount != null && diffAmount >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                      {diffAmount != null ? diffAmount.toLocaleString("ar-SA") : "—"}
+                      {diffAmount != null ? `${fmtNum(diffAmount)} SAR` : "—"}
                     </span>
                   </p>
                   <p className="flex justify-between text-foreground">

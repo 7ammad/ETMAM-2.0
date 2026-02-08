@@ -1,5 +1,6 @@
 "use server";
 
+import { createClient } from "@/lib/supabase/server";
 import { testOdooConnection as testConnection } from "@/lib/odoo";
 
 export interface OdooConfigStatus {
@@ -18,6 +19,12 @@ export type GetOdooConfigResult =
  * Does not send API key to client; only hasApiKey boolean.
  */
 export async function getOdooConfig(): Promise<GetOdooConfigResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "يجب تسجيل الدخول" };
+  }
+
   const url = process.env.ODOO_URL ?? "";
   const db = process.env.ODOO_DB ?? "";
   const username = process.env.ODOO_USERNAME ?? "";
@@ -43,6 +50,12 @@ export async function testOdooConnection(params: {
   username?: string;
   api_key?: string;
 }): Promise<TestOdooConnectionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "يجب تسجيل الدخول" };
+  }
+
   const url = (params.url?.trim() || (process.env.ODOO_URL ?? "")).replace(/\/$/, "");
   const db = params.db?.trim() || (process.env.ODOO_DB ?? "");
   const username = params.username?.trim() || (process.env.ODOO_USERNAME ?? "");
@@ -55,16 +68,20 @@ export async function testOdooConnection(params: {
     };
   }
 
-  const result = await testConnection({ url, db, username, api_key });
+  try {
+    const result = await testConnection({ url, db, username, api_key });
 
-  if (!result.success) {
-    return { success: false, error: result.error ?? "تعذر الاتصال بـ Odoo" };
+    if (!result.success) {
+      return { success: false, error: result.error ?? "تعذر الاتصال بـ Odoo" };
+    }
+
+    return {
+      success: true,
+      connected: result.connected,
+      error: result.connected ? undefined : result.error,
+      database_name: result.database_name,
+    };
+  } catch {
+    return { success: false, error: "تعذر الاتصال بـ Odoo — تحقق من الرابط والبيانات" };
   }
-
-  return {
-    success: true,
-    connected: result.connected,
-    error: result.connected ? undefined : result.error,
-    database_name: result.database_name,
-  };
 }

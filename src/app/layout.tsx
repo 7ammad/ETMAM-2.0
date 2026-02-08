@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Cairo, Noto_Kufi_Arabic } from "next/font/google";
+import { ThemeProvider } from "@/providers/theme-provider";
 import { Toaster } from "@/components/ui/toast";
+import { LanguageSync } from "@/components/layout/LanguageSync";
 import "./globals.css";
 
 const cairo = Cairo({
@@ -30,11 +32,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" className="dark">
-      <body
-        className={`${cairo.variable} ${notoKufiArabic.variable} antialiased min-h-screen bg-background text-foreground`}
-      >
-        {children}
+    <html
+      lang="ar"
+      dir="rtl"
+      suppressHydrationWarning
+      className={`${cairo.variable} ${notoKufiArabic.variable}`}
+    >
+      <body className="antialiased min-h-screen bg-background text-foreground">
+        <ThemeProvider>
+          <LanguageSync />
+          {children}
+        </ThemeProvider>
         <Toaster />
       </body>
     </html>

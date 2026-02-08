@@ -3,7 +3,7 @@ import { StatsRow } from "@/components/dashboard/StatsRow";
 import { RecentTenders } from "@/components/dashboard/RecentTenders";
 import { ExportSummary } from "@/components/dashboard/ExportSummary";
 import { ScoreDistribution } from "@/components/dashboard/ScoreDistribution";
-import Link from "next/link";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -33,7 +33,6 @@ export default async function DashboardPage() {
     withScore.length > 0
       ? withScore.reduce((a, t) => a + (t.evaluation_score ?? 0), 0) / withScore.length
       : null;
-  /** PRD: CRM = Odoo + Excel. Count tenders actually pushed to Odoo (not pipeline stage). */
   const pushedToCrm = tenders.filter((t) => t.odoo_lead_id != null).length;
 
   const recentTenders = tenders.slice(0, 5).map((t) => ({
@@ -55,35 +54,12 @@ export default async function DashboardPage() {
   }
 
   if (totalTenders === 0) {
-    return (
-      <main className="flex min-h-[50vh] flex-col items-center justify-center p-6">
-        <div className="rounded-lg border border-border bg-card p-8 text-center shadow-sm">
-          <h2 className="text-lg font-semibold text-foreground">ابدأ برفع أول منافسة</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            ارفع ملف Excel أو CSV أو PDF لاستخراج البيانات والتقييم.
-          </p>
-          <Link
-            href="/tenders"
-            className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            رفع منافسة جديدة
-          </Link>
-        </div>
-      </main>
-    );
+    return <DashboardHeader empty userName={user.user_metadata?.full_name ?? user.email} />;
   }
 
   return (
-    <main className="space-y-6 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-foreground">لوحة التحكم</h1>
-        <Link
-          href="/tenders"
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          رفع منافسة جديدة
-        </Link>
-      </div>
+    <main className="space-y-6">
+      <DashboardHeader userName={user.user_metadata?.full_name ?? user.email} />
 
       <StatsRow
         totalTenders={totalTenders}

@@ -177,6 +177,7 @@ export async function updateTenderBidPrice(
     error: authError,
   } = await supabase.auth.getUser();
   if (authError || !user) {
+    console.error("[updateTenderBidPrice] Auth error:", authError);
     return { success: false, error: "يجب تسجيل الدخول" };
   }
 
@@ -187,8 +188,24 @@ export async function updateTenderBidPrice(
     .eq("id", tenderId)
     .eq("user_id", user.id);
 
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    console.error("[updateTenderBidPrice] Database error:", {
+      tenderId,
+      userId: user.id,
+      proposedPrice: value,
+      error,
+    });
+    return { success: false, error: error.message };
+  }
+
+  console.log("[updateTenderBidPrice] Success:", {
+    tenderId,
+    proposedPrice: value,
+  });
+
   revalidatePath(`/tenders/${tenderId}`);
+  revalidatePath("/tenders");
+  revalidatePath("/dashboard");
   return { success: true };
 }
 
@@ -212,7 +229,7 @@ export type MatchResultItem = {
 };
 
 export type MatchCostItemsResult =
-  | { success: true; matches: MatchResultItem[] }
+  | { success: true; matches: MatchResultItem[]; rateCardItemCount: number }
   | { success: false; error: string };
 
 export async function matchCostItems(
@@ -256,25 +273,50 @@ export async function matchCostItems(
     }
   }
 
+  // Normalise Arabic text: strip ال prefix, diacritics, kashida, lowercase
+  function normalise(text: string): string {
+    return text
+      .trim()
+      .toLowerCase()
+      .replace(/[\u0610-\u061A\u064B-\u065F\u0670]/g, "") // strip diacritics
+      .replace(/\u0640/g, ""); // strip kashida/tatweel
+  }
+
+  function tokenise(text: string): string[] {
+    return normalise(text)
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w.replace(/^ال/, "")); // strip definite article
+  }
+
   const matches: MatchResultItem[] = items.map((item) => {
-    const descNorm = item.description.trim().toLowerCase();
+    const descNorm = normalise(item.description);
+    const descTokens = tokenise(item.description);
     let best: { score: number; rci: (typeof rciList)[0] } | null = null;
 
     for (const rci of rciList) {
-      const nameNorm = (rci.item_name || "").toLowerCase();
-      const catNorm = (rci.category || "").toLowerCase();
+      const nameNorm = normalise(rci.item_name || "");
+      const catNorm = normalise(rci.category || "");
       const searchText = `${nameNorm} ${catNorm}`.trim();
+      const rciTokens = tokenise(`${rci.item_name || ""} ${rci.category || ""}`);
       let score = 0;
+
+      // Exact substring match (either direction)
       if (searchText.includes(descNorm) || descNorm.includes(nameNorm)) {
-        score = 0.9;
-      } else if (nameNorm.includes(descNorm)) {
-        score = 0.85;
+        score = 0.95;
       } else {
-        const words = descNorm.split(/\s+/).filter(Boolean);
-        const matchCount = words.filter((w) => searchText.includes(w)).length;
-        if (words.length > 0) score = (matchCount / words.length) * 0.8;
+        // Bidirectional token matching
+        const descInRci = descTokens.length > 0
+          ? descTokens.filter((w) => rciTokens.some((r) => r.includes(w) || w.includes(r))).length / descTokens.length
+          : 0;
+        const rciInDesc = rciTokens.length > 0
+          ? rciTokens.filter((r) => descTokens.some((w) => w.includes(r) || r.includes(w))).length / rciTokens.length
+          : 0;
+        // Take the higher of the two directions, weighted
+        score = Math.max(descInRci, rciInDesc) * 0.85;
       }
-      if (score > 0.5 && (!best || score > best.score)) {
+
+      if (score > 0.3 && (!best || score > best.score)) {
         best = { score, rci };
       }
     }
@@ -307,7 +349,7 @@ export async function matchCostItems(
     };
   });
 
-  return { success: true, matches };
+  return { success: true, matches, rateCardItemCount: rciList.length };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 "use server";
 
+import { createClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai/provider";
 import type { AIAnalysisResult } from "@/lib/ai/provider";
 import { analysisResponseSchema } from "@/lib/ai/parser";
@@ -41,6 +42,12 @@ export type TestAIResult = {
  * Validates response against analysisResponseSchema (including mock).
  */
 export async function testAIProvider(): Promise<TestAIResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { provider: "unknown", success: false, error: "يجب تسجيل الدخول", durationMs: 0 };
+  }
+
   const start = Date.now();
   const provider = await getAIProvider();
 

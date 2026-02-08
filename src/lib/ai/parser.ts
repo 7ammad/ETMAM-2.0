@@ -207,8 +207,39 @@ export function extractJSON(raw: string): string {
 }
 
 /**
+ * Recursively replace NaN with null in objects and arrays so Zod never sees NaN
+ * (z.number() rejects NaN per Zod spec). Mutates in place.
+ */
+function sanitizeNaNInPlace(value: unknown): void {
+  if (value === null || value === undefined) return;
+  if (typeof value === "number" && Number.isNaN(value)) return; // already handled at usage site
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const v = value[i];
+      if (typeof v === "number" && Number.isNaN(v)) {
+        (value as unknown[])[i] = null;
+      } else {
+        sanitizeNaNInPlace(v);
+      }
+    }
+    return;
+  }
+  if (typeof value === "object") {
+    for (const key of Object.keys(value as object)) {
+      const v = (value as Record<string, unknown>)[key];
+      if (typeof v === "number" && Number.isNaN(v)) {
+        (value as Record<string, unknown>)[key] = null;
+      } else {
+        sanitizeNaNInPlace(v);
+      }
+    }
+  }
+}
+
+/**
  * Normalize a raw Gemini extraction response before Zod validation.
  * Fixes common type mismatches: evidence array → record, missing fields → defaults.
+ * Sanitizes NaN in extracted_sections so Zod nullable number fields validate.
  */
 export function normalizeExtractionResponse(raw: Record<string, unknown>): Record<string, unknown> {
   const out = { ...raw };
@@ -228,9 +259,11 @@ export function normalizeExtractionResponse(raw: Record<string, unknown>): Recor
     const cleaned = (out.estimated_value as string).replace(/[,،\s]/g, "");
     const num = Number(cleaned);
     out.estimated_value = isNaN(num) ? null : num;
+  } else if (typeof out.estimated_value === "number" && Number.isNaN(out.estimated_value)) {
+    out.estimated_value = null;
   }
 
-  // Normalize extracted_sections: empty objects → null
+  // Normalize extracted_sections: empty objects → null, and sanitize NaN → null
   if (out.extracted_sections && typeof out.extracted_sections === "object") {
     const sections = out.extracted_sections as Record<string, unknown>;
     for (const key of ["boq", "technical_specs", "qualifications", "contract_terms", "evaluation_method"]) {
@@ -239,6 +272,7 @@ export function normalizeExtractionResponse(raw: Record<string, unknown>): Recor
         sections[key] = null;
       }
     }
+    sanitizeNaNInPlace(out.extracted_sections);
   }
 
   return out;

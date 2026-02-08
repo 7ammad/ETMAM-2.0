@@ -170,7 +170,7 @@ export function TenderDetailClient({
         </TabsContent>
 
         <TabsContent value="nominations">
-          <NominationsTab tenderId={tenderId} tender={tender} />
+          <NominationsTab tenderId={tenderId} tender={tender} onNavigateToCosts={() => navigateToTab("cost-estimate")} />
         </TabsContent>
 
         <TabsContent value="cost-estimate">

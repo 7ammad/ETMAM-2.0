@@ -87,7 +87,11 @@ export async function register(
 }
 
 export async function logout(): Promise<void> {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  try {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  } catch {
+    // Best-effort sign out — always redirect to login
+  }
   redirect("/login");
 }

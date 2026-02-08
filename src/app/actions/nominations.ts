@@ -36,6 +36,14 @@ export type DeleteNominationResult =
   | { success: true }
   | { success: false; error: string };
 
+export type UpdateNominationResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export type SelectAllBestResult =
+  | { success: true; selectedCount: number }
+  | { success: false; error: string };
+
 export type ApplyNominationsResult =
   | { success: true; count: number }
   | { success: false; error: string };
@@ -575,7 +583,123 @@ export async function addManualNomination(input: {
 }
 
 // ---------------------------------------------------------------------------
-// 7. deleteNomination — delete a product nomination
+// 7. updateNomination — edit product nomination fields
+// ---------------------------------------------------------------------------
+
+export async function updateNomination(input: {
+  id: string;
+  product_name: string;
+  brand?: string;
+  model_sku?: string;
+  distributor?: string;
+  unit_price?: number;
+}): Promise<UpdateNominationResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "يجب تسجيل الدخول" };
+  }
+
+  const productName = input.product_name?.trim();
+  if (!productName) {
+    return { success: false, error: "اسم المنتج مطلوب" };
+  }
+
+  // Fetch tender_id for revalidation
+  const { data: nom } = await supabase
+    .from("product_nominations")
+    .select("tender_id")
+    .eq("id", input.id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!nom) {
+    return { success: false, error: "الترشيح غير موجود" };
+  }
+
+  const { error } = await supabase
+    .from("product_nominations")
+    .update({
+      product_name: productName,
+      brand: input.brand?.trim() || null,
+      model_sku: input.model_sku?.trim() || null,
+      distributor: input.distributor?.trim() || null,
+      unit_price: input.unit_price != null ? Number(input.unit_price) : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.id)
+    .eq("user_id", user.id);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath(`/tenders/${nom.tender_id}`);
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// 7b. selectAllBestNominations — select top-ranked nomination per spec card
+// ---------------------------------------------------------------------------
+
+export async function selectAllBestNominations(
+  tenderId: string
+): Promise<SelectAllBestResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: "يجب تسجيل الدخول" };
+  }
+
+  // Fetch all nominations for this tender
+  const { data: noms, error: fetchError } = await supabase
+    .from("product_nominations")
+    .select("id, spec_card_id, rank")
+    .eq("tender_id", tenderId)
+    .eq("user_id", user.id)
+    .order("rank", { ascending: true });
+
+  if (fetchError) return { success: false, error: fetchError.message };
+  if (!noms || noms.length === 0) {
+    return { success: false, error: "لا توجد ترشيحات" };
+  }
+
+  // Find the best (lowest rank) nomination per spec card
+  const bestPerCard = new Map<string, string>();
+  for (const n of noms) {
+    if (!bestPerCard.has(n.spec_card_id)) {
+      bestPerCard.set(n.spec_card_id, n.id);
+    }
+  }
+
+  // Unselect all nominations for this tender first
+  const { error: unselectError } = await supabase
+    .from("product_nominations")
+    .update({ is_selected: false, updated_at: new Date().toISOString() })
+    .eq("tender_id", tenderId)
+    .eq("user_id", user.id);
+
+  if (unselectError) return { success: false, error: unselectError.message };
+
+  // Select the best ones
+  const bestIds = Array.from(bestPerCard.values());
+  const { error: selectError } = await supabase
+    .from("product_nominations")
+    .update({ is_selected: true, updated_at: new Date().toISOString() })
+    .in("id", bestIds)
+    .eq("user_id", user.id);
+
+  if (selectError) return { success: false, error: selectError.message };
+
+  revalidatePath(`/tenders/${tenderId}`);
+  return { success: true, selectedCount: bestIds.length };
+}
+
+// ---------------------------------------------------------------------------
+// 8. deleteNomination — delete a product nomination
 // ---------------------------------------------------------------------------
 
 export async function deleteNomination(id: string): Promise<DeleteNominationResult> {

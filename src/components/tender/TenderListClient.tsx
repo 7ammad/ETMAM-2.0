@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import type { Tender } from "@/types/database";
 import { ScoreBadge } from "@/components/ui";
 import { TenderUpload } from "./TenderUpload";
@@ -34,6 +35,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export function TenderListClient({ initialTenders }: TenderListClientProps) {
+  const router = useRouter();
   const [tenders] = useState(initialTenders);
   const [sortBy, setSortBy] = useState<keyof Tender>("created_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -179,7 +181,7 @@ export function TenderListClient({ initialTenders }: TenderListClientProps) {
                 <tr
                   key={tender.id}
                   className="cursor-pointer border-t border-border transition-colors hover:bg-muted/50"
-                  onClick={() => window.location.assign(`/tenders/${tender.id}`)}
+                  onClick={() => router.push(`/tenders/${tender.id}`)}
                 >
                   <td className="px-4 py-3">{tender.entity}</td>
                   <td className="px-4 py-3">{tender.tender_title}</td>

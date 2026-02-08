@@ -1,42 +1,54 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeft, ArrowRight, Send } from "lucide-react";
+import { useLanguageStore } from "@/stores/language-store";
+import { t, ts } from "@/lib/i18n";
 
 interface ExportSummaryProps {
-  /** Count of tenders pushed to Odoo (from tenders.odoo_lead_id or exported_to). */
   pushedToOdoo: number;
 }
 
-/**
- * Dashboard card: export status. PRD: CRM = Excel + Odoo; no pipeline in nav.
- * Shows how many tenders were sent to Odoo; link to tenders list (not /pipeline).
- */
 export function ExportSummary({ pushedToOdoo }: ExportSummaryProps) {
+  const lang = useLanguageStore((s) => s.lang);
+  const Arrow = lang === "ar" ? ArrowLeft : ArrowRight;
+
+  const countMsg = t("pushedCount", lang);
+  const countText =
+    typeof countMsg === "function" ? countMsg(pushedToOdoo) : "";
+
   return (
-    <div className="rounded-lg border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold text-foreground">التصدير إلى Odoo</h2>
+    <div className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <h2 className="text-sm font-semibold text-foreground">
+          {ts("exportToOdoo", lang)}
+        </h2>
         <Link
           href="/tenders"
-          className="text-xs font-medium text-primary hover:underline"
+          className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
         >
-          عرض المنافسات ←
+          {ts("viewTenders", lang)}
+          <Arrow className="h-3 w-3" />
         </Link>
       </div>
-      <div className="p-4 space-y-2">
+      <div className="flex flex-col items-center gap-3 p-6">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+          <Send className="h-5 w-5 text-primary" />
+        </div>
         {pushedToOdoo === 0 ? (
           <p className="text-center text-sm text-muted-foreground">
-            لم يُرسل أي منافسات إلى Odoo بعد.
+            {ts("noPushYet", lang)}
           </p>
         ) : (
-          <p className="text-center text-sm text-foreground">
-            تم إرسال <strong>{pushedToOdoo}</strong> منافسة إلى Odoo.
-          </p>
+          <p className="text-center text-sm text-foreground">{countText}</p>
         )}
         <p className="text-center text-xs text-muted-foreground">
-          للتصدير الجماعي أو الفردي، توجه إلى{" "}
-          <Link href="/tenders" className="font-medium text-primary hover:underline">
-            قائمة المنافسات
+          {ts("exportBulkHint", lang)}{" "}
+          <Link
+            href="/tenders"
+            className="font-medium text-primary hover:underline"
+          >
+            {ts("tendersList", lang)}
           </Link>
         </p>
       </div>

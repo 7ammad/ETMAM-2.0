@@ -33,6 +33,8 @@ export default async function TenderDetailPage({
     .select("*")
     .eq("tender_id", id)
     .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   return (
