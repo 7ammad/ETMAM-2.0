@@ -144,16 +144,17 @@ Supported fields per tender:
 ### الخطوة 2: تقييم المنافسات | Step 2: Evaluate Tenders
 
 1. Open a tender detail page
-2. Click **تحليل (Analyze)** button
-3. AI evaluates the tender using configurable weighted criteria:
-   - Alignment with company capabilities
-   - Profitability potential
-   - Risk assessment
-   - Timeline feasibility
-   - Competition level
-4. Result: Overall score (0-100) + recommendation (Proceed / Review / Skip) + evidence quotes
+2. Go to the **التقييم (Evaluation)** tab
+3. Click **تحليل بالذكاء الاصطناعي (AI Analysis)** button
+4. AI evaluates the tender using 5 weighted criteria:
+   - التوافق التقني (Relevance) — alignment with company capabilities
+   - الملاءمة المالية (Budget Fit) — profitability potential
+   - الجدول الزمني (Timeline) — feasibility
+   - مستوى المنافسة (Competition) — competitive landscape
+   - القيمة الاستراتيجية (Strategic Value) — strategic alignment
+5. Result: Overall score (0-100) + recommendation (Proceed / Review / Skip) + evidence quotes
 
-**Editable scoring weights**: Go to **الإعدادات (Settings)** → Scoring Weights tab to adjust criteria weights.
+**Editable scoring weights**: Go to **الإعدادات (Settings)** → **معايير التقييم (Evaluation Criteria)** tab to adjust criteria weights (0-100, sum to 100).
 
 ### الخطوة 3: تقدير التكاليف | Step 3: Cost Estimation (Optional)
 
@@ -247,3 +248,57 @@ npx supabase db reset # Reset database (re-run all migrations)
 | PDF extraction fails | Ensure `GEMINI_API_KEY` is set (Gemini handles PDF text extraction) |
 | Odoo connection fails | Verify URL format includes `https://`, test credentials in Settings |
 | Missing tables | Run `npx supabase db reset` to re-apply all migrations |
+
+---
+
+## نشر نسخة التقييم بالذكاء الاصطناعي | Deploy AI Eval Version (Production)
+
+Deploy the **AI eval** app (backend + evaluation system) so it runs in the cloud. Use the **`main`** branch (or tag **`pre-demo1`**).
+
+### Option A: Vercel (recommended)
+
+1. **Supabase (cloud)**  
+   Create a project at [supabase.com](https://supabase.com). In **Settings → API** copy:
+   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
+   - `anon` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`
+
+2. **Run migrations in cloud**  
+   Link your repo and run migrations against the cloud project:
+   ```bash
+   npx supabase link --project-ref YOUR_PROJECT_REF
+   npx supabase db push
+   ```
+   Or apply `supabase/migrations/*.sql` manually in the SQL Editor (skip pipeline tables if you use the eval-only version).
+
+3. **Vercel**  
+   - Go to [vercel.com](https://vercel.com) → **Add New** → **Project** → Import `7ammad/ETMAM-2.0` (or your fork).
+   - **Branch:** leave as `main` (this is the AI eval version).
+   - **Environment Variables:** add all from `.env.example` with production values:
+     - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (from Supabase cloud)
+     - `AI_PROVIDER=deepseek`, `DEEPSEEK_API_KEY=...`, `GEMINI_API_KEY=...` (and optionally `GROQ_API_KEY=...`)
+     - `NEXT_PUBLIC_APP_URL=https://your-app.vercel.app` (your Vercel URL after first deploy)
+   - Deploy. Vercel will run `pnpm build` and serve the app.
+
+4. **Auth (Supabase)**  
+   In Supabase **Authentication → URL Configuration**, set **Site URL** to your Vercel URL and add the same URL under **Redirect URLs** so login/register work.
+
+### Option B: Deploy from your machine (CLI)
+
+```bash
+# Use the main (AI eval) branch
+git checkout main
+pnpm install
+pnpm build
+
+# Deploy to Vercel (requires Vercel CLI: pnpm add -g vercel)
+vercel --prod
+```
+
+When prompted, add the same environment variables as above in the Vercel dashboard (Project → Settings → Environment Variables).
+
+### After deploy
+
+- Open `https://your-app.vercel.app`
+- Register a user; confirm email if required in Supabase Auth settings
+- Upload a tender (PDF/Excel) and run **AI Analysis** to confirm the eval pipeline works

@@ -94,6 +94,8 @@ export type TenderUpdate = Partial<Omit<Tender, "id" | "user_id">>;
 // --- Evaluations ---
 export type EvaluationRecommendation = "proceed" | "review" | "skip";
 
+export type EvaluationDecision = "GO" | "MAYBE" | "SKIP";
+
 export interface Evaluation {
   id: string;
   tender_id: string;
@@ -104,10 +106,12 @@ export interface Evaluation {
   manual_override: EvaluationRecommendation | null;
   override_reason: string | null;
   preset_id: string | null;
+  factor_inputs: Json | null;
+  decision: EvaluationDecision | null;
   created_at: string;
   updated_at: string;
 }
-export type EvaluationInsert = Omit<Evaluation, "id" | "created_at" | "updated_at"> & { id?: string; created_at?: string; updated_at?: string };
+export type EvaluationInsert = Omit<Evaluation, "id" | "created_at" | "updated_at" | "factor_inputs" | "decision"> & { id?: string; created_at?: string; updated_at?: string; factor_inputs?: Json | null; decision?: EvaluationDecision | null };
 export type EvaluationUpdate = Partial<Omit<Evaluation, "id" | "tender_id" | "user_id">>;
 
 // --- Cost items ---

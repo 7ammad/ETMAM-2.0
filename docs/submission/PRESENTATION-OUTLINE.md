@@ -70,15 +70,15 @@ Demo steps:
 1. Open a tender → Click "تحليل" (Analyze)
 2. Show the evaluation loading → results appear
 3. Walk through: Overall score, recommendation (Proceed/Review/Skip)
-4. Show per-criterion breakdown with scores
+4. Show per-criterion breakdown with scores and reasoning
 5. Show evidence quotes from the tender text
 6. Go to Settings → Show editable scoring weights
 
 **Talking points**:
 - DeepSeek AI evaluates in Arabic with reasoning
-- Weighted criteria: alignment, profitability, risk, timeline, competition
-- Fully editable scoring weights — non-technical users can adjust
-- Verification layer: system recalculates scores, cross-checks evidence
+- 5 weighted criteria: Relevance, Budget Fit, Timeline, Competition, Strategic Value
+- Fully editable scoring weights — non-technical users can adjust in Settings
+- Verification layer: system recalculates scores and cross-checks evidence
 
 ---
 

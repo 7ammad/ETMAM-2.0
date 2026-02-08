@@ -40,7 +40,8 @@ Etmam 2.0 is a working MVP that automates the complete workflow from **tender in
 **Status: Done**
 
 - AI evaluation using DeepSeek (primary), with Gemini and Groq as fallbacks
-- **Score**: 0-100 overall score, calculated from weighted per-criterion scores
+- **Score**: 0-100 overall score, calculated from 5 weighted per-criterion scores
+- **Criteria**: Relevance, Budget Fit, Timeline, Competition, Strategic Value — all with configurable weights
 - **Reasons**: Arabic-language reasoning for each criterion + evidence quotes from tender text
 - **Recommendation**: Auto-generated (Proceed / Review / Skip) based on score thresholds
 - **Editable model**: Scoring weights configurable in Settings UI — no code changes needed
@@ -143,7 +144,7 @@ etmam-2.0/
 │   ├── hooks/                  # React hooks
 │   └── types/                  # TypeScript type definitions
 ├── supabase/
-│   └── migrations/             # Database schema (6 migration files)
+│   └── migrations/             # Database schema (7 migration files)
 ├── docs/
 │   └── submission/             # This submission pack
 ├── .env.example                # Environment template

@@ -59,6 +59,9 @@ export type { DropzoneProps } from "./dropzone";
 
 export { Toaster, toast } from "./toast";
 
+export { Switch } from "./switch";
+export type { SwitchProps } from "./switch";
+
 // ── Organisms ──
 export { DataTable } from "./data-table";
 export type { DataTableProps, Column } from "./data-table";

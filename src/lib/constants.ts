@@ -11,6 +11,21 @@ export const DEFAULT_SCORING_WEIGHTS = {
   strategic: 15,
 } as const;
 
+// Configurable evaluation: decision thresholds
+export const DECISION_THRESHOLDS = {
+  go: 80,
+  maybe: 60,
+} as const;
+
+// Configurable evaluation: default criteria configs
+export const NEW_DEFAULT_CRITERIA = [
+  { key: "profit_potential" as const, enabled: true, weight: 50 },
+  { key: "delivery_confidence" as const, enabled: true, weight: 25 },
+  { key: "cashflow_risk" as const, enabled: true, weight: 15 },
+  { key: "scope_alignment" as const, enabled: false, weight: 10 },
+  { key: "entity_relationship" as const, enabled: false, weight: 0 },
+] as const;
+
 export const CONFIDENCE_THRESHOLDS = {
   high: 75,
   medium: 50,

@@ -94,6 +94,39 @@ const dict = {
   evalCriteria: { ar: "معايير التقييم", en: "Evaluation Criteria" },
   odooCrm: { ar: "ربط Odoo/CRM", en: "Odoo/CRM" },
   aiProvider: { ar: "مزود الذكاء الاصطناعي", en: "AI Provider" },
+
+  // ── Evaluation modes ──
+  evalModeAi: { ar: "تقييم بالذكاء الاصطناعي", en: "AI Evaluation" },
+  evalModeConfigurable: { ar: "تقييم قابل للتعديل", en: "Configurable Evaluation" },
+  evalModeLabel: { ar: "نمط التقييم", en: "Evaluation Mode" },
+  profileSelector: { ar: "ملف التقييم", en: "Evaluation Profile" },
+  saveProfile: { ar: "حفظ", en: "Save" },
+  deleteProfile: { ar: "حذف", en: "Delete" },
+  newProfile: { ar: "ملف جديد", en: "New Profile" },
+  weightSum: { ar: "مجموع الأوزان", en: "Weight Sum" },
+  enabled: { ar: "مفعّل", en: "Enabled" },
+  weight: { ar: "الوزن", en: "Weight" },
+  runEvaluation: { ar: "تشغيل التقييم", en: "Run Evaluation" },
+  evaluating: { ar: "جارٍ التقييم...", en: "Evaluating..." },
+  decisionGo: { ar: "المضي قدماً", en: "GO" },
+  decisionMaybe: { ar: "مراجعة", en: "MAYBE" },
+  decisionSkip: { ar: "تخطي", en: "SKIP" },
+  factors: { ar: "عوامل التقييم", en: "Evaluation Factors" },
+  autoFilled: { ar: "معبأ تلقائياً", en: "Auto-filled" },
+  score: { ar: "الدرجة", en: "Score" },
+  reasoning: { ar: "التعليل", en: "Reasoning" },
+
+  // ── Landing page ──
+  heroTagline: { ar: "من الملف إلى الفرصة في دقائق", en: "From file to opportunity in minutes" },
+  whyEtmam: { ar: "لماذا إتمام؟", en: "Why Etmam?" },
+  getStarted: { ar: "ابدأ الآن", en: "Get Started" },
+  pipelineSteps: { ar: "سير العمل", en: "Pipeline" },
+  featTitle1: { ar: "استخراج ذكي", en: "Smart Extraction" },
+  featDesc1: { ar: "استخراج بيانات المنافسات من ملفات PDF و Excel و CSV بالذكاء الاصطناعي", en: "AI-powered data extraction from PDF, Excel, and CSV files" },
+  featTitle2: { ar: "تقييم فوري", en: "Instant Evaluation" },
+  featDesc2: { ar: "تقييم تلقائي بـ5 معايير مع توصية وأدلة من نص المنافسة", en: "Automatic evaluation with 5 criteria, recommendations and evidence" },
+  featTitle3: { ar: "تصدير للـCRM", en: "CRM Export" },
+  featDesc3: { ar: "تصدير مباشر إلى Odoo أو تحميل ملف Excel جاهز", en: "Direct Odoo export or ready-to-use Excel download" },
 } as const;
 
 export type TransKey = keyof typeof dict;

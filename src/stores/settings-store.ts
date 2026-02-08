@@ -20,6 +20,9 @@ interface SettingsStore {
   autoAnalyze: boolean;
   confidenceThreshold: number;
 
+  evaluationMode: "ai" | "configurable";
+  activeProfileId: string | null;
+
   crmEnabled: boolean;
   crmAutoCreate: boolean;
 
@@ -28,6 +31,8 @@ interface SettingsStore {
 
   setAIProvider: (provider: "deepseek" | "gemini" | "groq") => void;
   setScoringWeights: (weights: Partial<ScoringWeights>) => void;
+  setEvaluationMode: (mode: "ai" | "configurable") => void;
+  setActiveProfileId: (id: string | null) => void;
   setLocale: (locale: "en" | "ar") => void;
   setTableView: (view: "table" | "card") => void;
   setCRMEnabled: (enabled: boolean) => void;
@@ -50,6 +55,9 @@ export const useSettingsStore = create<SettingsStore>()(
         autoAnalyze: false,
         confidenceThreshold: 50,
 
+        evaluationMode: "ai",
+        activeProfileId: null,
+
         crmEnabled: true,
         crmAutoCreate: false,
 
@@ -61,6 +69,8 @@ export const useSettingsStore = create<SettingsStore>()(
           set((state) => ({
             scoringWeights: { ...state.scoringWeights, ...weights },
           })),
+        setEvaluationMode: (mode) => set({ evaluationMode: mode }),
+        setActiveProfileId: (id) => set({ activeProfileId: id }),
         setLocale: (locale) => set({ locale }),
         setTableView: (view) => set({ tableView: view }),
         setCRMEnabled: (enabled) => set({ crmEnabled: enabled }),
