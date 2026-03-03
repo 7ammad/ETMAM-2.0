@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { TenderListClient } from "@/components/tender/TenderListClient";
 import { BatchExportActions } from "@/components/export/BatchExportActions";
+import { LocalizedHeading } from "@/components/ui/localized-heading";
 
 export default async function TendersPage() {
   const supabase = await createClient();
@@ -21,7 +22,7 @@ export default async function TendersPage() {
   return (
     <div className="p-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-foreground">المنافسات</h1>
+        <LocalizedHeading i18nKey="tenders" className="text-2xl font-bold text-foreground" />
         <BatchExportActions />
       </div>
 

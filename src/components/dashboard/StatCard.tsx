@@ -20,13 +20,20 @@ export function StatCard({
 }: StatCardProps) {
   if (variant === "hero") {
     return (
-      <div className="flex flex-col justify-center">
-        <p className="text-overline text-muted-foreground mb-2">{label}</p>
-        <p className="text-display text-gradient-accent font-data tabular-nums">
-          {value}
-        </p>
+      <div className="relative flex flex-col justify-center rounded-xl border border-accent-500/20 bg-card p-6 overflow-hidden">
+        {/* Accent glow behind the number */}
+        <div className="absolute -top-8 -end-8 h-32 w-32 rounded-full bg-accent-500/5 blur-2xl" />
+        <p className="text-overline text-muted-foreground mb-2 relative">{label}</p>
+        <div className="flex items-end gap-3 relative">
+          <p className="text-5xl font-extrabold text-gradient-accent font-data tabular-nums leading-none">
+            {value}
+          </p>
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-accent-500/10 border border-accent-500/20 mb-1">
+            <Icon className="h-5 w-5 text-accent-400" />
+          </div>
+        </div>
         {trend != null && trend !== "" && (
-          <p className="text-xs text-muted-foreground mt-1">{trend}</p>
+          <p className="text-xs text-muted-foreground mt-2 relative">{trend}</p>
         )}
       </div>
     );
@@ -35,14 +42,15 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card p-5 transition-colors",
+        "relative rounded-xl border bg-card p-5 transition-all duration-200 hover-lift overflow-hidden",
         variant === "highlight"
-          ? "border-accent-500/20"
+          ? "border-accent-500/20 shadow-[0_0_15px_-3px] shadow-accent-500/10"
           : "border-border/40"
       )}
     >
+      {/* Accent left border stripe */}
       {variant === "highlight" && (
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-l from-transparent via-accent-500/40 to-transparent" />
+        <div className="absolute inset-y-2 start-0 w-0.5 rounded-full bg-accent-500" />
       )}
 
       <div className="flex items-start justify-between">
@@ -57,9 +65,9 @@ export function StatCard({
         </div>
         <div
           className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors",
             variant === "highlight"
-              ? "bg-accent-500/10 text-accent-400"
+              ? "bg-accent-500/10 text-accent-400 border border-accent-500/20"
               : "bg-muted/50 text-muted-foreground"
           )}
         >

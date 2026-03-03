@@ -9,12 +9,15 @@ import {
   pushQualifiedTendersToOdoo,
 } from "@/app/actions/export";
 import { FileDown, Send } from "lucide-react";
+import { useLanguageStore } from "@/stores/language-store";
+import { ts, t } from "@/lib/i18n";
 
 /**
  * Phase 2.3: Export All (Excel) and Push All Qualified (Odoo) CTAs.
  * Use on Dashboard and/or Tenders list page.
  */
 export function BatchExportActions() {
+  const lang = useLanguageStore((s) => s.lang);
   const [exporting, setExporting] = useState(false);
   const [pushing, setPushing] = useState(false);
 
@@ -27,7 +30,7 @@ export function BatchExportActions() {
         return;
       }
       if (idsResult.ids.length === 0) {
-        toast.info("لا توجد منافسات للتصدير");
+        toast.info(ts("noTendersToExport", lang));
         return;
       }
       const result = await exportTendersToExcel(idsResult.ids);
@@ -47,7 +50,9 @@ export function BatchExportActions() {
       a.download = result.filename;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`تم تحميل ${result.filename}`);
+      const downloadedFn = t("downloaded", lang);
+      const msg = typeof downloadedFn === "function" ? downloadedFn(result.filename) : result.filename;
+      toast.success(msg as string);
     } finally {
       setExporting(false);
     }
@@ -62,16 +67,18 @@ export function BatchExportActions() {
         return;
       }
       if (result.successCount === 0 && result.failedCount === 0) {
-        toast.info("لا توجد منافسات مؤهلة (درجة 70+) غير مرسلة إلى Odoo");
+        toast.info(ts("noQualifiedTenders", lang));
         return;
       }
+      const resultFn = t("pushedToOdooResult", lang);
+      const msg = typeof resultFn === "function"
+        ? resultFn(result.successCount, result.failedCount)
+        : `${result.successCount}`;
       if (result.failedCount > 0) {
         const errors = result.results.filter((r) => !r.success);
-        toast.error(
-          `تم إرسال ${result.successCount}؛ فشل ${result.failedCount}. ${errors[0]?.error ?? ""}`
-        );
+        toast.error(`${msg}. ${errors[0]?.error ?? ""}`);
       } else {
-        toast.success(`تم إرسال ${result.successCount} منافسة إلى Odoo`);
+        toast.success(msg as string);
       }
     } finally {
       setPushing(false);
@@ -79,7 +86,7 @@ export function BatchExportActions() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2" dir="rtl">
+    <div className="flex flex-wrap items-center gap-2">
       <Button
         variant="outline"
         size="sm"
@@ -87,8 +94,8 @@ export function BatchExportActions() {
         disabled={exporting}
         isLoading={exporting}
       >
-        <FileDown className="h-4 w-4 ml-1" />
-        تصدير الكل (Excel)
+        <FileDown className="h-4 w-4 me-1" />
+        {ts("exportAllExcel", lang)}
       </Button>
       <Button
         variant="outline"
@@ -97,8 +104,8 @@ export function BatchExportActions() {
         disabled={pushing}
         isLoading={pushing}
       >
-        <Send className="h-4 w-4 ml-1" />
-        إرسال المؤهلة إلى Odoo
+        <Send className="h-4 w-4 me-1" />
+        {ts("pushQualifiedToOdoo", lang)}
       </Button>
     </div>
   );

@@ -206,3 +206,64 @@ export async function createOdooLead(
     return { success: false, error: message };
   }
 }
+
+export interface UpdateLeadResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Update existing crm.lead in Odoo via XML-RPC execute_kw (write method).
+ */
+export async function updateOdooLead(
+  params: {
+    url: string;
+    db: string;
+    username: string;
+    api_key: string;
+  },
+  leadId: number,
+  fields: {
+    name?: string;
+    expected_revenue?: number;
+    date_deadline?: string;
+    description?: string;
+    partner_name?: string;
+  }
+): Promise<UpdateLeadResult> {
+  const uidResult = await getOdooUid(params);
+  if (!uidResult.success) return { success: false, error: uidResult.error };
+
+  const base = params.url.replace(/\/$/, "");
+  const endpoint = `${base}/xmlrpc/2/object`;
+
+  const cleanFields: Record<string, string | number | boolean> = {};
+  if (fields.name != null) cleanFields.name = fields.name;
+  if (fields.expected_revenue != null) cleanFields.expected_revenue = fields.expected_revenue;
+  if (fields.date_deadline != null) cleanFields.date_deadline = fields.date_deadline;
+  if (fields.description != null) cleanFields.description = fields.description;
+  if (fields.partner_name != null) cleanFields.partner_name = fields.partner_name;
+
+  const structXml = buildStructXml(cleanFields);
+
+  // write method: execute_kw(db, uid, api_key, 'crm.lead', 'write', [[id], {fields}])
+  const body = `<?xml version="1.0"?><methodCall><methodName>execute_kw</methodName><params><param><value><string>${escapeXml(params.db)}</string></value></param><param><value><int>${uidResult.uid}</int></value></param><param><value><string>${escapeXml(params.api_key)}</string></value></param><param><value><string>crm.lead</string></value></param><param><value><string>write</string></value></param><param><value><array><data><value><array><data><value><int>${leadId}</int></value></data></array></value><value>${structXml}</value></data></array></value></param></params></methodCall>`;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "text/xml" },
+      body,
+    });
+    if (!res.ok) return { success: false, error: `تعذر الاتصال بـ Odoo (${res.status})` };
+    const text = await res.text();
+    if (text.includes("<fault>") || text.includes("Fault")) {
+      const msgMatch = text.match(/<string>([^<]*)<\/string>/);
+      return { success: false, error: msgMatch?.[1]?.trim() ?? "خطأ من Odoo" };
+    }
+    return { success: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "تعذر الاتصال بـ Odoo";
+    return { success: false, error: message };
+  }
+}

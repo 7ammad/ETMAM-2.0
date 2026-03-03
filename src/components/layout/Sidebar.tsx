@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   FileText,
+  Target,
   Settings,
 } from "lucide-react";
 import { useLanguageStore } from "@/stores/language-store";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" as const },
   { href: "/tenders", icon: FileText, labelKey: "tenders" as const },
+  { href: "/opportunities", icon: Target, labelKey: "opportunities" as const },
   { href: "/settings", icon: Settings, labelKey: "settings" as const },
 ];
 

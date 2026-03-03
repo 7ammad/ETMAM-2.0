@@ -25,7 +25,7 @@ function PageHeader({
     <div className={cn("mb-6", className)}>
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav aria-label="التنقل" className="mb-3">
+        <nav aria-label="Breadcrumb" className="mb-3">
           <ol className="flex items-center gap-1 text-sm text-muted-foreground">
             {breadcrumbs.map((item, i) => (
               <li key={i} className="flex items-center gap-1">

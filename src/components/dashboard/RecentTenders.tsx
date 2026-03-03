@@ -7,6 +7,17 @@ import { useLanguageStore } from "@/stores/language-store";
 import { ts } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
+function ScoreDot({ score }: { score: number | null }) {
+  if (score == null) return <div className="h-2 w-2 rounded-full bg-muted/50" />;
+  const color =
+    score >= 75
+      ? "bg-confidence-high"
+      : score >= 50
+        ? "bg-accent-500"
+        : "bg-destructive";
+  return <div className={cn("h-2.5 w-2.5 rounded-full", color)} />;
+}
+
 function StatusBadge({
   status,
   score,
@@ -21,7 +32,7 @@ function StatusBadge({
       score >= 75
         ? "bg-confidence-high/10 text-confidence-high"
         : score >= 50
-          ? "bg-amber-500/10 text-amber-500"
+          ? "bg-accent-500/10 text-accent-400"
           : "bg-destructive/10 text-destructive";
     return (
       <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium font-data tabular-nums", color)}>
@@ -54,7 +65,7 @@ export function RecentTenders({ tenders }: RecentTendersProps) {
   const Arrow = lang === "ar" ? ArrowLeft : ArrowRight;
 
   return (
-    <div className="rounded-xl border border-border/40 bg-card">
+    <div className="rounded-xl border border-border/40 bg-card gradient-border-top overflow-hidden">
       <div className="flex items-center justify-between border-b border-border/40 px-5 py-4">
         <h2 className="text-sm font-semibold text-foreground">
           {ts("recentTenders", lang)}
@@ -74,7 +85,6 @@ export function RecentTenders({ tenders }: RecentTendersProps) {
           </div>
         ) : (
           tenders.map((t) => {
-            // If evaluated, go to analysis page; otherwise overview
             const href = t.evaluation_score != null
               ? `/tenders/${t.id}/analysis`
               : `/tenders/${t.id}`;
@@ -82,9 +92,10 @@ export function RecentTenders({ tenders }: RecentTendersProps) {
               <Link
                 key={t.id}
                 href={href}
-                className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-muted/30"
+                className="group flex items-center gap-3 px-5 py-3.5 transition-all hover:bg-muted/30"
               >
-                <div className="min-w-0 flex-1">
+                <ScoreDot score={t.evaluation_score} />
+                <div className="min-w-0 flex-1 transition-transform duration-150 group-hover:translate-x-[-2px] rtl:group-hover:translate-x-[2px]">
                   <p className="truncate text-sm font-medium text-foreground">
                     {t.tender_title}
                   </p>

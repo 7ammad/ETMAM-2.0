@@ -1,20 +1,26 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import type { Tender } from "@/types/database";
 import { ScoreBadge } from "@/components/ui";
 import { TenderUpload } from "./TenderUpload";
+import { useLanguageStore } from "@/stores/language-store";
+import { t, ts } from "@/lib/i18n";
+import type { Lang } from "@/lib/i18n";
+import { pushQualifiedTendersToOdoo } from "@/app/actions/export";
+import { deleteTender } from "@/app/actions/tenders";
 
 interface TenderListClientProps {
   initialTenders: Tender[];
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  new: "جديد",
-  evaluated: "مُقيّم",
-  costed: "مُكلف",
-  exported: "مُصدّر",
+const STATUS_KEYS: Record<string, "statusNew" | "statusEvaluated" | "statusCosted" | "statusExported"> = {
+  new: "statusNew",
+  evaluated: "statusEvaluated",
+  costed: "statusCosted",
+  exported: "statusExported",
 };
 
 const STATUS_STYLES: Record<string, string> = {
@@ -24,22 +30,28 @@ const STATUS_STYLES: Record<string, string> = {
   exported: "bg-status-pushed/20 text-status-pushed",
 };
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, lang }: { status: string; lang: Lang }) {
+  const key = STATUS_KEYS[status];
+  const label = key ? ts(key, lang) : status;
   return (
     <span
       className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${STATUS_STYLES[status] ?? "bg-muted text-muted-foreground"}`}
     >
-      {STATUS_LABELS[status] ?? status}
+      {label}
     </span>
   );
 }
 
 export function TenderListClient({ initialTenders }: TenderListClientProps) {
   const router = useRouter();
+  const lang = useLanguageStore((s) => s.lang);
   const [tenders] = useState(initialTenders);
   const [sortBy, setSortBy] = useState<keyof Tender>("created_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [isPushing, startPushing] = useTransition();
+  const [isDeleting, startDeleting] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sortedTenders = useMemo(() => {
@@ -67,6 +79,17 @@ export function TenderListClient({ initialTenders }: TenderListClientProps) {
     }
   }
 
+  function toggleAll() {
+    if (selected.size === sortedTenders.length) setSelected(new Set());
+    else setSelected(new Set(sortedTenders.map((t) => t.id)));
+  }
+
+  function toggleOne(id: string) {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelected(next);
+  }
+
   function handleDirectUpload() {
     fileInputRef.current?.click();
   }
@@ -75,6 +98,31 @@ export function TenderListClient({ initialTenders }: TenderListClientProps) {
     const file = e.target.files?.[0];
     if (file) setUploadedFile(file);
   }
+
+  function handleBatchPush() {
+    startPushing(async () => {
+      await pushQualifiedTendersToOdoo();
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
+
+  function handleBatchDelete() {
+    const confirmFn = t("confirmDelete", lang);
+    const msg = typeof confirmFn === "function" ? confirmFn(selected.size) : `Delete ${selected.size}?`;
+    if (!window.confirm(msg)) return;
+    startDeleting(async () => {
+      const ids = Array.from(selected);
+      for (const id of ids) {
+        await deleteTender(id);
+      }
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
+
+  const selectedFn = t("selected", lang);
+  const selectedText = typeof selectedFn === "function" ? selectedFn(selected.size) : `${selected.size}`;
 
   if (uploadedFile) {
     return (
@@ -97,17 +145,17 @@ export function TenderListClient({ initialTenders }: TenderListClientProps) {
         />
         <div className="mb-4 text-4xl">📄</div>
         <h3 className="mb-2 text-lg font-semibold text-foreground">
-          لا توجد منافسات
+          {ts("noTenders", lang)}
         </h3>
         <p className="mb-6 text-sm text-muted-foreground">
-          ابدأ برفع ملف CSV أو Excel أو PDF يحتوي على بيانات المنافسات
+          {ts("noTendersDesc", lang)}
         </p>
         <button
           type="button"
           onClick={handleDirectUpload}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-accent-600"
         >
-          رفع منافسات
+          {ts("uploadTenders", lang)}
         </button>
       </div>
     );
@@ -128,52 +176,84 @@ export function TenderListClient({ initialTenders }: TenderListClientProps) {
           onClick={handleDirectUpload}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-accent-600"
         >
-          رفع منافسات
+          {ts("uploadTenders", lang)}
         </button>
       </div>
+
+      {/* Batch action bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border border-accent-500/30 bg-accent-500/5 px-4 py-3">
+          <span className="text-sm font-medium text-foreground">{selectedText}</span>
+          <button
+            type="button"
+            onClick={handleBatchPush}
+            disabled={isPushing}
+            className="rounded-md bg-accent-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-400 transition-colors disabled:opacity-50"
+          >
+            {isPushing ? ts("pushing", lang) : ts("sendSelectedToOdoo", lang)}
+          </button>
+          <button
+            type="button"
+            onClick={handleBatchDelete}
+            disabled={isDeleting}
+            className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {isDeleting ? ts("deleting", lang) : ts("deleteSelected", lang)}
+          </button>
+        </div>
+      )}
 
       {sortedTenders.length > 0 && (
         <div className="overflow-hidden rounded-lg border border-border">
           <table className="w-full text-sm">
             <thead className="bg-muted">
               <tr>
+                <th className="w-10 px-3 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.size === sortedTenders.length && sortedTenders.length > 0}
+                    onChange={toggleAll}
+                    className="h-4 w-4 rounded border-border accent-accent-500"
+                  />
+                </th>
                 <th
                   className="cursor-pointer px-4 py-3 text-start transition-colors hover:bg-muted/80"
                   onClick={() => handleSort("entity")}
                 >
-                  الجهة{" "}
+                  {ts("entity", lang)}{" "}
                   {sortBy === "entity" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
                 <th
                   className="cursor-pointer px-4 py-3 text-start transition-colors hover:bg-muted/80"
                   onClick={() => handleSort("tender_title")}
                 >
-                  عنوان المنافسة{" "}
+                  {ts("tenderTitle", lang)}{" "}
                   {sortBy === "tender_title" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
                 <th
                   className="cursor-pointer px-4 py-3 text-start transition-colors hover:bg-muted/80"
                   onClick={() => handleSort("tender_number")}
                 >
-                  رقم المنافسة{" "}
+                  {ts("tenderNumber", lang)}{" "}
                   {sortBy === "tender_number" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
                 <th
                   className="cursor-pointer px-4 py-3 text-start transition-colors hover:bg-muted/80"
                   onClick={() => handleSort("deadline")}
                 >
-                  الموعد النهائي{" "}
+                  {ts("deadline", lang)}{" "}
                   {sortBy === "deadline" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
                 <th
                   className="cursor-pointer px-4 py-3 text-start transition-colors hover:bg-muted/80"
                   onClick={() => handleSort("estimated_value")}
                 >
-                  القيمة التقديرية{" "}
+                  {ts("estimatedValue", lang)}{" "}
                   {sortBy === "estimated_value" && (sortOrder === "asc" ? "↑" : "↓")}
                 </th>
-                <th className="px-4 py-3 text-start">التقييم</th>
-                <th className="px-4 py-3 text-start">الحالة</th>
+                <th className="px-4 py-3 text-start">{ts("evaluation", lang)}</th>
+                <th className="px-4 py-3 text-start">{ts("status", lang)}</th>
               </tr>
             </thead>
             <tbody>
@@ -183,15 +263,23 @@ export function TenderListClient({ initialTenders }: TenderListClientProps) {
                   className="cursor-pointer border-t border-border transition-colors hover:bg-muted/50"
                   onClick={() => router.push(`/tenders/${tender.id}`)}
                 >
+                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(tender.id)}
+                      onChange={() => toggleOne(tender.id)}
+                      className="h-4 w-4 rounded border-border accent-accent-500"
+                    />
+                  </td>
                   <td className="px-4 py-3">{tender.entity}</td>
                   <td className="px-4 py-3">{tender.tender_title}</td>
                   <td className="px-4 py-3">{tender.tender_number}</td>
                   <td className="px-4 py-3">
-                    {new Date(tender.deadline).toLocaleDateString("ar-SA")}
+                    {new Date(tender.deadline).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US")}
                   </td>
                   <td className="px-4 py-3" dir="ltr">
                     {tender.estimated_value != null
-                      ? Number(tender.estimated_value).toLocaleString("ar-SA")
+                      ? Number(tender.estimated_value).toLocaleString(lang === "ar" ? "ar-SA" : "en-US")
                       : "—"}
                   </td>
                   <td className="px-4 py-3">
@@ -202,7 +290,7 @@ export function TenderListClient({ initialTenders }: TenderListClientProps) {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={tender.status} />
+                    <StatusBadge status={tender.status} lang={lang} />
                   </td>
                 </tr>
               ))}

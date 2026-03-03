@@ -419,6 +419,7 @@ export async function pushTenderToOdoo(tenderId: string): Promise<PushToOdooResu
         .eq("id", tenderId)
         .eq("user_id", user.id);
       revalidatePath(`/tenders/${tenderId}`);
+      revalidatePath("/opportunities");
     }
 
     return { success: true, odoo_lead_id: result.lead_id ?? 0 };

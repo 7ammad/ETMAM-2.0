@@ -4,7 +4,25 @@
       "Bash(pnpm add:*)",
       "mcp__Claude_Preview__preview_start",
       "Bash(pnpm build)",
-      "Bash(pkill -f \"pnpm dev\")"
+      "Bash(pkill -f \"pnpm dev\")",
+      "Bash(git commit:*)",
+      "Bash(gh pr:*)",
+      "Bash(xargs grep -l \"from.*odoo\\\\|import.*odoo\")",
+      "Bash(grep -A5 -B5 \"pushTenderToOdoo\" /c/Dev/Builds/etmam-2.0/src/app/actions/*.ts)",
+      "Bash(xargs grep -l \"pushTenderToOdoo\\\\|PushAllQualified\\\\|Export\\\\|Odoo\")",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx next build)",
+      "Bash(where pnpm)",
+      "Bash(where npx)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //F //PID 289928)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(curl -v http://localhost:3000)",
+      "Bash(where node)",
+      "Bash(ls \"/c/Dev/Builds/etmam-2.0/node_modules/.bin/next\"*)",
+      "Bash(taskkill //F //PID 178668)"
     ]
   }
 }

@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   if (!user) {
     return (
       <main className="p-6">
-        <p className="text-muted-foreground">يجب تسجيل الدخول.</p>
+        <p className="text-muted-foreground">Login required / يجب تسجيل الدخول</p>
       </main>
     );
   }
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="space-y-6">
+    <main className="space-y-8 animate-[fadeIn_0.3s_ease-out]">
       <DashboardHeader userName={user.user_metadata?.full_name ?? user.email} />
 
       <StatsRow
@@ -70,10 +70,11 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <RecentTenders tenders={recentTenders} />
-        <ExportSummary pushedToOdoo={pushedToCrm} />
+        <div className="space-y-6">
+          <ExportSummary pushedToOdoo={pushedToCrm} />
+          <ScoreDistribution counts={buckets} />
+        </div>
       </div>
-
-      <ScoreDistribution counts={buckets} />
     </main>
   );
 }

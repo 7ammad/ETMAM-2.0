@@ -94,3 +94,5 @@ export type { PageHeaderProps, BreadcrumbItem } from "./page-header";
 
 export { Section } from "./section";
 export type { SectionProps } from "./section";
+
+export { LocalizedHeading } from "./localized-heading";
