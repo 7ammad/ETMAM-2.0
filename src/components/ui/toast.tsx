@@ -9,9 +9,9 @@ function Toaster() {
       dir="rtl"
       toastOptions={{
         style: {
-          background: "var(--color-navy-800)",
-          color: "var(--color-navy-50)",
-          border: "1px solid var(--color-navy-600)",
+          background: "var(--color-muted)",
+          color: "var(--color-foreground)",
+          border: "1px solid var(--color-border)",
           fontFamily: "var(--font-sans)",
         },
         className: "!rounded-lg",

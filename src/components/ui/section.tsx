@@ -20,7 +20,7 @@ function Section({
         <div className="flex items-center justify-between gap-4">
           <div>
             {title && (
-              <h2 className="text-base font-semibold text-navy-100">
+              <h2 className="text-lg font-semibold text-foreground tracking-tight">
                 {title}
               </h2>
             )}

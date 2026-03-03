@@ -35,12 +35,12 @@ function PageHeader({
                 {item.href ? (
                   <a
                     href={item.href}
-                    className="hover:text-navy-200 transition-colors"
+                    className="hover:text-foreground transition-colors"
                   >
                     {item.label}
                   </a>
                 ) : (
-                  <span className="text-navy-300">{item.label}</span>
+                  <span className="text-muted-foreground">{item.label}</span>
                 )}
               </li>
             ))}
@@ -51,7 +51,7 @@ function PageHeader({
       {/* Title row */}
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl font-bold text-navy-50 truncate">{title}</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight truncate">{title}</h1>
           {description && (
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           )}

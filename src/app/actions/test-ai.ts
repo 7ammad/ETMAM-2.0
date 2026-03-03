@@ -20,11 +20,10 @@ const SAMPLE_TENDER = `
 `;
 
 const DEFAULT_WEIGHTS = {
-  relevance: 30,
-  budgetFit: 25,
-  timeline: 20,
-  competition: 15,
-  strategic: 10,
+  deliverableCategorization: 30,
+  competitiveFeasibility: 30,
+  riskAssessment: 20,
+  companyFit: 20,
 };
 
 export type TestAIResult = {

@@ -119,7 +119,7 @@ export function classifyError(err: unknown): AIError {
     message.includes("parse") ||
     message.includes("Zod")
   ) {
-    return new AIError("فشل تحليل استجابة AI", "INVALID_RESPONSE", true, err);
+    return new AIError("فشل تحليل استجابة AI", "INVALID_RESPONSE", false, err);
   }
 
   return new AIError(

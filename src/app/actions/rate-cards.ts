@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { RateCard } from "@/types/database";
@@ -59,6 +60,12 @@ export async function uploadRateCard(formData: FormData): Promise<UploadRateCard
 
   const file = formData.get("file") as File | null;
   const nameInput = formData.get("name") as string | null;
+
+  const formSchema = z.object({
+    name: z.string().max(255).optional(),
+  });
+  formSchema.parse({ name: nameInput ?? undefined });
+
   if (!file || file.size === 0) {
     return { success: false, error: "لم يتم اختيار ملف" };
   }
@@ -144,6 +151,8 @@ export type DeleteRateCardResult =
   | { success: false; error: string };
 
 export async function deleteRateCard(id: string): Promise<DeleteRateCardResult> {
+  z.string().uuid().parse(id);
+
   const supabase = await createClient();
   const {
     data: { user },

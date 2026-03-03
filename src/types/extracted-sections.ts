@@ -25,7 +25,7 @@ export interface ExtractedSections {
 
   /** جداول الكميات والأسعار (BOQ) — Section 7 */
   boq: {
-    pricing_type: "lump_sum" | "unit_based" | "mixed" | null;
+    pricing_type: string | null;
     items: BOQItem[];
     total_items_count: number | null;
     confidence: number;
@@ -71,7 +71,7 @@ export interface ExtractedSections {
 
   /** آلية التقييم — Section 5/9 */
   evaluation_method: {
-    method: "lowest_price" | "quality_and_cost" | "quality_only" | null;
+    method: string | null;
     financial_weight: number | null;
     technical_weight: number | null;
     min_technical_score: number | null;

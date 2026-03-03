@@ -24,7 +24,7 @@ export function formatCurrency(value: number): string {
 /** Get score color class based on value */
 export function getScoreColor(score: number): string {
   if (score >= 76) return "text-confidence-high";
-  if (score >= 51) return "text-gold-500";
+  if (score >= 51) return "text-accent-500";
   if (score >= 26) return "text-confidence-medium";
   return "text-confidence-low";
 }
@@ -32,7 +32,7 @@ export function getScoreColor(score: number): string {
 /** Get score background color class */
 export function getScoreBgColor(score: number): string {
   if (score >= 76) return "bg-confidence-high/10 text-confidence-high";
-  if (score >= 51) return "bg-gold-500/10 text-gold-500";
+  if (score >= 51) return "bg-accent-500/10 text-accent-500";
   if (score >= 26) return "bg-confidence-medium/10 text-confidence-medium";
   return "bg-confidence-low/10 text-confidence-low";
 }

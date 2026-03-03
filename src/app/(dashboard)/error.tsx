@@ -19,7 +19,7 @@ export default function DashboardError({
       <button
         type="button"
         onClick={reset}
-        className="rounded-md border border-navy-600 bg-navy-800 px-4 py-2 text-sm hover:bg-navy-700"
+        className="rounded-md border border-border bg-muted px-4 py-2 text-sm hover:bg-muted/80"
       >
         إعادة المحاولة
       </button>

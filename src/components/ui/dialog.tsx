@@ -120,7 +120,7 @@ function DialogContent({
           aria-label={title}
           aria-describedby={description ? "dialog-desc" : undefined}
           className={cn(
-            "relative w-full max-w-lg rounded-lg bg-navy-900 border border-navy-700 shadow-lg",
+            "relative w-full max-w-lg rounded-xl bg-card border border-border/40",
             "animate-slide-up p-6",
             className
           )}
@@ -129,7 +129,7 @@ function DialogContent({
           {/* Close button */}
           <button
             onClick={() => setOpen(false)}
-            className="absolute top-4 left-4 p-1 rounded-md text-navy-400 hover:text-navy-200 hover:bg-navy-800 transition-colors"
+            className="absolute top-4 left-4 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
             aria-label="إغلاق"
           >
             <X className="h-4 w-4" />
@@ -139,7 +139,7 @@ function DialogContent({
           {(title || description) && (
             <div className="mb-4 pe-8">
               {title && (
-                <h2 className="text-lg font-semibold text-navy-50">{title}</h2>
+                <h2 className="text-lg font-semibold text-foreground">{title}</h2>
               )}
               {description && (
                 <p id="dialog-desc" className="text-sm text-muted-foreground mt-1">
@@ -167,7 +167,7 @@ function DialogFooter({
   return (
     <div
       className={cn(
-        "flex items-center justify-end gap-2 mt-6 pt-4 border-t border-navy-700",
+        "flex items-center justify-end gap-2 mt-6 pt-4 border-t border-border",
         className
       )}
     >

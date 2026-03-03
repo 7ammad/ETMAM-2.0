@@ -59,7 +59,7 @@ function TabsList({
     <div
       role="tablist"
       className={cn(
-        "inline-flex items-center gap-1 rounded-lg bg-navy-900 p-1 border border-navy-700",
+        "inline-flex items-center gap-1 rounded-lg bg-background p-1 border border-border/40",
         className
       )}
     >
@@ -90,8 +90,8 @@ function TabsTrigger({
         "inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md",
         "transition-all duration-200 whitespace-nowrap",
         isActive
-          ? "bg-navy-700 text-gold-400 shadow-sm"
-          : "text-navy-400 hover:text-navy-200 hover:bg-navy-800",
+          ? "bg-muted/80 text-accent-400 shadow-sm"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/80",
         className
       )}
     >

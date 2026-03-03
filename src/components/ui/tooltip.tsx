@@ -34,7 +34,7 @@ function Tooltip({ content, side = "top", children, className }: TooltipProps) {
           role="tooltip"
           className={cn(
             "absolute z-50 px-2.5 py-1.5 text-xs rounded-md whitespace-nowrap",
-            "bg-navy-700 text-navy-100 border border-navy-600 shadow-md",
+            "bg-card text-card-foreground border border-border/40",
             "animate-fade-in pointer-events-none",
             positionClasses[side],
             className

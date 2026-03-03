@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { TenderDetailClient } from "@/components/tender/TenderDetailClient";
+import { TenderOverview } from "@/components/tender/TenderOverview";
 
 export default async function TenderDetailPage({
   params,
@@ -28,22 +28,5 @@ export default async function TenderDetailPage({
     notFound();
   }
 
-  const { data: evaluation } = await supabase
-    .from("evaluations")
-    .select("*")
-    .eq("tender_id", id)
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  return (
-    <main className="p-6">
-      <TenderDetailClient
-        tenderId={id}
-        tender={tender}
-        evaluation={evaluation ?? null}
-      />
-    </main>
-  );
+  return <TenderOverview tenderId={id} tender={tender} />;
 }

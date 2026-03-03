@@ -46,7 +46,7 @@ function DataTable<T>({
   return (
     <div
       className={cn(
-        "overflow-auto rounded-lg border border-navy-700",
+        "overflow-auto rounded-xl border border-border/40",
         className
       )}
     >
@@ -55,7 +55,7 @@ function DataTable<T>({
         <thead>
           <tr
             className={cn(
-              "border-b border-navy-700 bg-navy-900",
+              "border-b border-border bg-background",
               stickyHeader && "sticky top-0 z-10"
             )}
           >
@@ -63,9 +63,9 @@ function DataTable<T>({
               <th
                 key={col.key}
                 className={cn(
-                  "text-right font-medium text-navy-300 px-4",
+                  "text-right font-medium text-muted-foreground px-4",
                   compact ? "py-2" : "py-3",
-                  col.sortable && "cursor-pointer select-none hover:text-navy-100",
+                  col.sortable && "cursor-pointer select-none hover:text-foreground",
                   col.headerClassName
                 )}
                 onClick={() => col.sortable && onSort?.(col.key)}
@@ -107,8 +107,8 @@ function DataTable<T>({
               <tr
                 key={keyExtractor(item)}
                 className={cn(
-                  "border-b border-navy-800 transition-colors",
-                  !striped && "hover:bg-navy-800/50",
+                  "border-b border-border/40 transition-colors",
+                  !striped && "hover:bg-muted/50",
                   onRowClick && "cursor-pointer"
                 )}
                 onClick={() => onRowClick?.(item)}
@@ -117,7 +117,7 @@ function DataTable<T>({
                   <td
                     key={col.key}
                     className={cn(
-                      "px-4 text-navy-200",
+                      "px-4 text-foreground",
                       compact ? "py-2" : "py-3",
                       col.className
                     )}

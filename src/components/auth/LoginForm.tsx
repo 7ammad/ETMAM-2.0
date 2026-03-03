@@ -28,7 +28,7 @@ export function LoginForm() {
           required
           autoComplete="email"
           dir="ltr"
-          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/40 transition-colors"
           placeholder="you@example.com"
         />
       </div>
@@ -47,7 +47,7 @@ export function LoginForm() {
           required
           autoComplete="current-password"
           dir="ltr"
-          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/40 transition-colors"
         />
       </div>
 
@@ -63,14 +63,14 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-gold-600 disabled:opacity-50"
+        className="w-full rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-400 disabled:opacity-50"
       >
         {isPending ? ts("loggingIn", lang) : ts("loginBtn", lang)}
       </button>
 
       <p className="text-center text-sm text-muted-foreground">
         {ts("noAccount", lang)}{" "}
-        <Link href="/register" className="text-gold-500 hover:underline">
+        <Link href="/register" className="text-accent-500 hover:underline">
           {ts("createAccount", lang)}
         </Link>
       </p>
