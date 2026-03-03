@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 interface ProgressProps {
   value: number;
   max?: number;
-  variant?: "default" | "success" | "warning" | "danger" | "gold";
+  variant?: "default" | "success" | "warning" | "danger" | "accent";
   size?: "sm" | "md" | "lg";
   showValue?: boolean;
   label?: string;
@@ -13,11 +13,11 @@ interface ProgressProps {
 }
 
 const variantColors = {
-  default: "bg-navy-400",
+  default: "bg-muted-foreground",
   success: "bg-confidence-high",
   warning: "bg-confidence-medium",
   danger: "bg-confidence-low",
-  gold: "bg-gold-500",
+  accent: "bg-accent-500",
 };
 
 const sizeClasses = {
@@ -29,7 +29,7 @@ const sizeClasses = {
 function Progress({
   value,
   max = 100,
-  variant = "gold",
+  variant = "accent",
   size = "md",
   showValue,
   label,
@@ -42,10 +42,10 @@ function Progress({
       {(label || showValue) && (
         <div className="flex justify-between items-center mb-1.5">
           {label && (
-            <span className="text-sm text-navy-300">{label}</span>
+            <span className="text-sm text-muted-foreground">{label}</span>
           )}
           {showValue && (
-            <span className="text-sm font-medium text-navy-200 ltr-nums">
+            <span className="text-sm font-medium text-foreground ltr-nums">
               {Math.round(percentage)}%
             </span>
           )}
@@ -53,7 +53,7 @@ function Progress({
       )}
       <div
         className={cn(
-          "w-full overflow-hidden rounded-full bg-navy-800",
+          "w-full overflow-hidden rounded-full bg-muted",
           sizeClasses[size]
         )}
         role="progressbar"

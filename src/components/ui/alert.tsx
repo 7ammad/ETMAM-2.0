@@ -13,7 +13,7 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-navy-800 border-navy-600 text-navy-200",
+        default: "bg-muted border-border text-foreground",
         info: "bg-status-active/10 border-status-active/25 text-status-active",
         success:
           "bg-confidence-high/10 border-confidence-high/25 text-confidence-high",

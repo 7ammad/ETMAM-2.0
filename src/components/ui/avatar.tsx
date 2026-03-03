@@ -31,7 +31,7 @@ function Avatar({ name, src, size = "md", className }: AvatarProps) {
         src={src}
         alt={name}
         className={cn(
-          "rounded-full object-cover border border-navy-600",
+          "rounded-full object-cover border border-border",
           sizeMap[size],
           className
         )}
@@ -43,7 +43,7 @@ function Avatar({ name, src, size = "md", className }: AvatarProps) {
     <div
       className={cn(
         "inline-flex items-center justify-center rounded-full",
-        "bg-gold-500/15 text-gold-400 font-semibold border border-gold-500/25",
+        "bg-accent-500/15 text-accent-400 font-semibold border border-accent-500/25",
         sizeMap[size],
         className
       )}

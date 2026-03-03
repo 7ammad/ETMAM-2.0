@@ -21,7 +21,7 @@ function Switch({ checked, onCheckedChange, disabled, className, id }: SwitchPro
       onClick={() => onCheckedChange(!checked)}
       className={cn(
         "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors",
-        checked ? "bg-gold-500" : "bg-navy-700",
+        checked ? "bg-accent-500" : "bg-muted/80",
         disabled && "cursor-not-allowed opacity-50",
         className
       )}

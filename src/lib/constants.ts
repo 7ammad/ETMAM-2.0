@@ -4,11 +4,10 @@ export const APP_DESCRIPTION =
   "نظام ذكي لإدارة المنافسات الحكومية — من الملف إلى الفرصة في دقائق";
 
 export const DEFAULT_SCORING_WEIGHTS = {
-  relevance: 25,
-  budgetFit: 25,
-  timeline: 20,
-  competition: 15,
-  strategic: 15,
+  deliverableCategorization: 30,
+  competitiveFeasibility: 30,
+  riskAssessment: 20,
+  companyFit: 20,
 } as const;
 
 // Configurable evaluation: decision thresholds

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useLanguageStore } from "@/stores/language-store";
 import { ts } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" as const },
@@ -22,16 +23,16 @@ export function Sidebar() {
 
   return (
     <aside
-      className="flex w-60 shrink-0 flex-col border-e border-border bg-card"
+      className="flex w-60 shrink-0 flex-col border-e border-border/40 bg-card"
       aria-label={lang === "ar" ? "القائمة الرئيسية" : "Main navigation"}
     >
       {/* Brand */}
-      <div className="flex h-16 items-center gap-2.5 border-b border-border px-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-          <span className="text-sm font-bold text-primary-foreground">إ</span>
+      <div className="flex h-16 items-center gap-3 border-b border-border/40 px-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-500/15 ring-1 ring-accent-500/25">
+          <span className="text-sm font-bold text-accent-400">إ</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-bold text-foreground">
+          <span className="text-sm font-bold text-foreground tracking-tight">
             {ts("brand", lang)}
           </span>
           <span className="text-[10px] leading-tight text-muted-foreground">
@@ -41,7 +42,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex flex-1 flex-col gap-1 p-3">
+      <nav className="flex flex-1 flex-col gap-0.5 p-3">
         {navItems.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
@@ -50,18 +51,21 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={cn(
+                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "border-s-2",
                 isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
+                  ? "border-s-accent-500 bg-accent-500/5 text-foreground"
+                  : "border-s-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              )}
             >
               <Icon
-                className={`h-[18px] w-[18px] shrink-0 ${
+                className={cn(
+                  "h-[18px] w-[18px] shrink-0 transition-colors",
                   isActive
-                    ? "text-primary"
+                    ? "text-accent-400"
                     : "text-muted-foreground group-hover:text-foreground"
-                }`}
+                )}
               />
               {ts(item.labelKey, lang)}
             </Link>

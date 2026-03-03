@@ -22,19 +22,19 @@ export function DashboardHeader({ userName, empty }: DashboardHeaderProps) {
   if (empty) {
     return (
       <main className="flex min-h-[50vh] flex-col items-center justify-center">
-        <div className="rounded-xl border border-border bg-card p-10 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-            <Upload className="h-6 w-6 text-primary" />
+        <div className="flex flex-col items-center text-center max-w-sm">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-500/10 border border-accent-500/20 mb-6">
+            <Upload className="h-7 w-7 text-accent-400" />
           </div>
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="text-xl font-semibold text-foreground tracking-tight">
             {ts("emptyTitle", lang)}
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
             {ts("emptyDesc", lang)}
           </p>
           <Link
             href="/tenders"
-            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-accent-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-400 transition-colors glow-accent"
           >
             <Upload className="h-4 w-4" />
             {ts("uploadNew", lang)}
@@ -45,16 +45,16 @@ export function DashboardHeader({ userName, empty }: DashboardHeaderProps) {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">
+        <span className="text-overline text-muted-foreground">{greeting}</span>
+        <h1 className="text-2xl font-bold text-foreground tracking-tight mt-1">
           {ts("dashboard", lang)}
         </h1>
-        <p className="text-sm text-muted-foreground">{greeting}</p>
       </div>
       <Link
         href="/tenders"
-        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-accent-400 transition-colors"
       >
         <Upload className="h-4 w-4" />
         {ts("uploadNew", lang)}

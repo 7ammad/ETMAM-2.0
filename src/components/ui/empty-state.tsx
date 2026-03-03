@@ -28,10 +28,10 @@ function EmptyState({
         className
       )}
     >
-      <div className="p-4 rounded-full bg-navy-800 mb-4">
-        <Icon className="h-8 w-8 text-navy-400" />
+      <div className="p-4 rounded-full bg-accent-500/10 border border-accent-500/20 mb-4">
+        <Icon className="h-6 w-6 text-accent-400" />
       </div>
-      <h3 className="text-base font-semibold text-navy-200 mb-1">{title}</h3>
+      <h3 className="text-base font-semibold text-foreground mb-1">{title}</h3>
       {description && (
         <p className="text-sm text-muted-foreground max-w-sm mb-4">
           {description}

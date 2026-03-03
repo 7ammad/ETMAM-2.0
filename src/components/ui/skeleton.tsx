@@ -45,7 +45,7 @@ function SkeletonCard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "rounded-lg border border-navy-700 bg-navy-900 p-5 space-y-4",
+        "rounded-lg border border-border bg-background p-5 space-y-4",
         className
       )}
       aria-hidden="true"

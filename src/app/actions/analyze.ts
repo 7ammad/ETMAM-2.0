@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getAIProvider } from "@/lib/ai/provider";
 import { verifyAnalysis, verifyEvidence } from "@/lib/ai/verification";
@@ -16,21 +17,44 @@ type TenderForContent = {
   description: string | null;
   requirements: unknown;
   proposed_price: number | null;
+  extracted_sections: unknown;
+  line_items: unknown;
+  raw_text: string | null;
 };
 
+/**
+ * Build content for AI evaluation.
+ * Priority: full raw_text (complete document) > structured fields fallback.
+ * When raw_text is available, Gemini sees the ENTIRE tender booklet — no missing BOQ/SOW.
+ */
 async function buildTenderContent(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
+  _supabase: Awaited<ReturnType<typeof createClient>>,
+  _userId: string,
   tender: TenderForContent
 ): Promise<string> {
-  const parts = [
+  // Header with structured metadata (always included for context)
+  const header = [
     `الجهة: ${tender.entity}`,
     `عنوان المنافسة: ${tender.tender_title}`,
     `رقم المنافسة: ${tender.tender_number}`,
     `الموعد النهائي: ${tender.deadline}`,
-    `القيمة التقديرية: ${tender.estimated_value ?? ""}`,
+    `القيمة التقديرية: ${tender.estimated_value ?? "غير محدد"}`,
     tender.description ? `الوصف: ${tender.description}` : "",
-  ];
+  ].filter(Boolean).join("\n");
+
+  // If we have the full raw text, send it all to Gemini
+  if (tender.raw_text && tender.raw_text.length > 500) {
+    // Cap at 300K chars (~200K tokens) to stay within Gemini's context
+    const rawText = tender.raw_text.length > 300_000
+      ? tender.raw_text.slice(0, 300_000) + "\n\n[... تم اقتطاع باقي النص ...]"
+      : tender.raw_text;
+
+    return `${header}\n\n═══════════════════════════════════════\nالنص الكامل لكراسة الشروط والمواصفات:\n═══════════════════════════════════════\n\n${rawText}`;
+  }
+
+  // Fallback: build from structured data (for tenders saved before raw_text was added)
+  const parts = [header];
+
   if (tender.requirements) {
     const req =
       typeof tender.requirements === "string"
@@ -41,37 +65,47 @@ async function buildTenderContent(
     if (req) parts.push(`المتطلبات:\n${req}`);
   }
 
-  const { data: costItems } = await supabase
-    .from("cost_items")
-    .select("description, quantity, unit, unit_price, total, category, source")
-    .eq("tender_id", tender.id)
-    .eq("user_id", userId);
-
-  if (costItems && costItems.length > 0) {
-    const directTotal = costItems
-      .filter((i) => i.category === "direct")
-      .reduce((s, i) => s + Number(i.total), 0);
-    const indirectTotal = costItems
-      .filter((i) => i.category === "indirect")
-      .reduce((s, i) => s + Number(i.total), 0);
-    const totalCost = directTotal + indirectTotal;
-    const proposedPrice = tender.proposed_price ?? totalCost;
-    const margin =
-      totalCost > 0 && proposedPrice > 0
-        ? ((proposedPrice - totalCost) / proposedPrice) * 100
-        : 0;
-    const estimatedValue = tender.estimated_value ?? 0;
-    const delta = estimatedValue - proposedPrice;
-    const deltaPct =
-      estimatedValue > 0 ? ((delta / estimatedValue) * 100).toFixed(1) : "0";
-    parts.push("\n--- بيانات التكاليف ---");
-    parts.push(`إجمالي التكاليف المباشرة: ${directTotal}`);
-    parts.push(`إجمالي التكاليف غير المباشرة: ${indirectTotal}`);
-    parts.push(`إجمالي التكاليف: ${totalCost}`);
-    parts.push(`سعر العرض المقترح: ${proposedPrice}`);
-    parts.push(`هامش الربح: ${margin.toFixed(1)}%`);
-    parts.push(`القيمة التقديرية للمنافسة: ${estimatedValue}`);
-    parts.push(`الفرق عن القيمة التقديرية: ${delta} (${deltaPct}%)`);
+  const sections = tender.extracted_sections as Record<string, unknown> | null;
+  if (sections) {
+    if (sections.boq && typeof sections.boq === "object") {
+      const boq = sections.boq as { items?: unknown[]; pricing_type?: string };
+      if (boq.items && Array.isArray(boq.items) && boq.items.length > 0) {
+        parts.push("\n--- جدول الكميات والأسعار (BOQ) ---");
+        parts.push(`طريقة التسعير: ${boq.pricing_type ?? "غير محدد"}`);
+        parts.push(`عدد البنود: ${boq.items.length}`);
+        const itemLines = boq.items.slice(0, 30).map((raw: unknown) => {
+          const item = raw as Record<string, unknown>;
+          return `${item.seq ?? "-"}. ${item.description ?? ""} | الوحدة: ${item.unit ?? "-"} | الكمية: ${item.quantity ?? "-"} | الفئة: ${item.category ?? "-"}`;
+        });
+        parts.push(itemLines.join("\n"));
+      }
+    }
+    if (sections.contract_terms && typeof sections.contract_terms === "object") {
+      const ct = sections.contract_terms as Record<string, unknown>;
+      parts.push("\n--- شروط التعاقد ---");
+      if (ct.execution_period_days) parts.push(`مدة التنفيذ: ${ct.execution_period_days} يوم`);
+      if (ct.delay_penalty_percent) parts.push(`غرامة التأخير: ${ct.delay_penalty_percent}%`);
+      if (ct.initial_guarantee_percent) parts.push(`الضمان الابتدائي: ${ct.initial_guarantee_percent}%`);
+      if (ct.final_guarantee_percent) parts.push(`الضمان النهائي: ${ct.final_guarantee_percent}%`);
+      if (ct.payment_terms) parts.push(`شروط الدفع: ${ct.payment_terms}`);
+      if (ct.warranty_period_days) parts.push(`فترة الضمان: ${ct.warranty_period_days} يوم`);
+    }
+    if (sections.qualifications && typeof sections.qualifications === "object") {
+      const q = sections.qualifications as Record<string, unknown>;
+      parts.push("\n--- المتطلبات التأهيلية ---");
+      if (q.contractor_classification) parts.push(`التصنيف المطلوب: ${q.contractor_classification}`);
+      if (q.minimum_experience_years) parts.push(`الحد الأدنى للخبرة: ${q.minimum_experience_years} سنوات`);
+      if (Array.isArray(q.required_certifications) && q.required_certifications.length > 0) {
+        parts.push(`الشهادات المطلوبة: ${q.required_certifications.join("، ")}`);
+      }
+    }
+    if (sections.evaluation_method && typeof sections.evaluation_method === "object") {
+      const ev = sections.evaluation_method as Record<string, unknown>;
+      parts.push("\n--- آلية التقييم ---");
+      if (ev.method) parts.push(`الطريقة: ${ev.method}`);
+      if (ev.technical_weight) parts.push(`وزن العرض الفني: ${ev.technical_weight}%`);
+      if (ev.financial_weight) parts.push(`وزن العرض المالي: ${ev.financial_weight}%`);
+    }
   }
 
   return parts.filter(Boolean).join("\n\n");
@@ -85,8 +119,14 @@ function toDbRecommendation(
 }
 
 export type AnalyzeResult =
-  | { success: true; evaluationId: string }
+  | { success: true; evaluationId: string; evaluation?: any }
   | { success: false; error: string };
+
+const analyzeTenderInputSchema = z.object({
+  tenderId: z.string().uuid(),
+  weights: z.record(z.string(), z.number().min(0).max(100)),
+  aiProvider: z.enum(["deepseek", "gemini", "groq"]).optional(),
+});
 
 export async function analyzeTender(
   tenderId: string,
@@ -102,6 +142,9 @@ export async function analyzeTender(
   if (authError || !user) {
     return { success: false, error: "يجب تسجيل الدخول" };
   }
+
+  // --- Input validation ---
+  analyzeTenderInputSchema.parse({ tenderId, weights, aiProvider });
 
   const { data: tender, error: tenderError } = await supabase
     .from("tenders")
@@ -137,6 +180,7 @@ export async function analyzeTender(
     const autoRecommendation = toDbRecommendation(result.recommendation);
     const criteriaScores = {
       scores: result.scores,
+      parametric_estimate: result.parametric_estimate,
       evidence: checkedEvidence,
       recommendation_reasoning: result.recommendation_reasoning,
       red_flags: result.red_flags,
@@ -174,12 +218,103 @@ export async function analyzeTender(
       };
     }
 
+    // --- Backfill tender metadata from AI extraction ---
+    // The combined Extract+Evaluate prompt returns extracted_metadata
+    // which may have better data than the deterministic extraction.
+    const meta = result.extracted_metadata;
+    if (meta) {
+      const backfill: Record<string, unknown> = {};
+      // Only backfill fields that are currently placeholder/empty
+      if (meta.entity && (!tender.entity || tender.entity === "جهة غير محددة")) {
+        backfill.entity = meta.entity;
+      }
+      if (meta.tender_title && (!tender.tender_title || tender.tender_title === "منافسة بدون عنوان")) {
+        backfill.tender_title = meta.tender_title;
+      }
+      if (meta.tender_number && (!tender.tender_number || tender.tender_number.startsWith("PDF-"))) {
+        backfill.tender_number = meta.tender_number;
+      }
+      if (meta.deadline && (!tender.deadline || new Date(tender.deadline) > new Date(Date.now() + 25 * 86400000))) {
+        backfill.deadline = meta.deadline;
+      }
+      if (meta.estimated_value && !tender.estimated_value) {
+        backfill.estimated_value = meta.estimated_value;
+      }
+      if (meta.description) {
+        backfill.description = meta.description;
+      }
+
+      // Backfill extracted_sections with SOW, BOQ, contract_terms, qualifications, evaluation_method
+      const existingSections = (tender.extracted_sections as Record<string, unknown>) ?? {};
+      const newSections: Record<string, unknown> = { ...existingSections, _version: 1 };
+      let sectionsUpdated = false;
+
+      if (meta.boq_items && meta.boq_items.length > 0) {
+        const existingBoq = existingSections?.boq as { items?: unknown[] } | null;
+        if (!existingBoq?.items?.length) {
+          newSections.boq = {
+            pricing_type: null,
+            items: meta.boq_items,
+            total_items_count: meta.boq_items.length,
+            confidence: 80,
+          };
+          sectionsUpdated = true;
+        }
+      }
+      if (meta.technical_specs) {
+        const existingSpecs = existingSections?.technical_specs as Record<string, unknown> | null;
+        if (!existingSpecs?.scope_of_work) {
+          newSections.technical_specs = { ...meta.technical_specs, confidence: 80 };
+          sectionsUpdated = true;
+        }
+      }
+      if (meta.contract_terms) {
+        const existingCT = existingSections?.contract_terms as Record<string, unknown> | null;
+        if (!existingCT?.execution_period_days) {
+          newSections.contract_terms = { ...meta.contract_terms, confidence: 80 };
+          sectionsUpdated = true;
+        }
+      }
+      if (meta.qualifications) {
+        const existingQ = existingSections?.qualifications as Record<string, unknown> | null;
+        if (!existingQ?.contractor_classification) {
+          newSections.qualifications = { ...meta.qualifications, confidence: 80 };
+          sectionsUpdated = true;
+        }
+      }
+      if (meta.evaluation_method) {
+        const existingEval = existingSections?.evaluation_method as Record<string, unknown> | null;
+        if (!existingEval?.method) {
+          newSections.evaluation_method = { ...meta.evaluation_method, confidence: 80 };
+          sectionsUpdated = true;
+        }
+      }
+
+      if (sectionsUpdated) {
+        backfill.extracted_sections = newSections;
+      }
+
+      if (Object.keys(backfill).length > 0) {
+        console.info("[analyzeTender] Backfilling tender with AI-extracted metadata:", Object.keys(backfill));
+        await supabase
+          .from("tenders")
+          .update(backfill)
+          .eq("id", tenderId)
+          .eq("user_id", user.id);
+      }
+    }
+
     revalidatePath("/tenders");
     revalidatePath(`/tenders/${tenderId}`);
     revalidatePath("/dashboard");
     return {
       success: true,
       evaluationId: evalRow?.id ?? "",
+      evaluation: {
+        overall_score: Math.round(result.overall_score),
+        auto_recommendation: autoRecommendation,
+        criteria_scores: criteriaScores,
+      },
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

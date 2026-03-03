@@ -34,11 +34,10 @@ export function verifyAnalysis(
 
   // --- Recalculate overall_score from weighted sub-scores ---
   const weightMap: Record<string, string> = {
-    relevance: "relevance",
-    budget_fit: "budgetFit",
-    timeline: "timeline",
-    competition: "competition",
-    strategic: "strategic",
+    deliverable_categorization: "deliverableCategorization",
+    competitive_feasibility: "competitiveFeasibility",
+    risk_assessment: "riskAssessment",
+    company_fit: "companyFit",
   };
 
   let weightedSum = 0;

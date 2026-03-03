@@ -4,6 +4,7 @@ import { AIProviderConfig } from "./AIProviderConfig";
 import { ScoringWeights } from "./ScoringWeights";
 import { RateCardsTab } from "./RateCardsTab";
 import { OdooConfigTab } from "./OdooConfigTab";
+import { ProfileForm } from "./ProfileForm";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui";
 import { useLanguageStore } from "@/stores/language-store";
 import { ts } from "@/lib/i18n";
@@ -17,18 +18,20 @@ export function SettingsTabs() {
   const lang = useLanguageStore((s) => s.lang);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Tabs defaultValue="rate-cards">
         <TabsList>
           <TabsTrigger value="rate-cards">{ts("rateCards", lang)}</TabsTrigger>
           <TabsTrigger value="evaluation-criteria">{ts("evalCriteria", lang)}</TabsTrigger>
           <TabsTrigger value="odoo-crm">{ts("odooCrm", lang)}</TabsTrigger>
           <TabsTrigger value="ai-provider">{ts("aiProvider", lang)}</TabsTrigger>
+          <TabsTrigger value="profile">الملف الشخصي</TabsTrigger>
         </TabsList>
         <TabsContent value="rate-cards"><RateCardsTab /></TabsContent>
         <TabsContent value="evaluation-criteria"><ScoringWeights /></TabsContent>
         <TabsContent value="odoo-crm"><OdooConfigTab /></TabsContent>
         <TabsContent value="ai-provider"><AIProviderConfig /></TabsContent>
+        <TabsContent value="profile"><ProfileForm /></TabsContent>
       </Tabs>
     </div>
   );

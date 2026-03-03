@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -7,16 +8,24 @@ export type AuthResult = {
   error?: string;
 };
 
+const loginSchema = z.object({
+  email: z.string().email().trim().min(1),
+  password: z.string().min(1),
+});
+
 export async function login(
   _prevState: AuthResult | null,
   formData: FormData
 ): Promise<AuthResult> {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const rawEmail = formData.get("email") as string;
+  const rawPassword = formData.get("password") as string;
 
-  if (!email?.trim() || !password) {
+  const loginParsed = loginSchema.safeParse({ email: rawEmail, password: rawPassword });
+  if (!loginParsed.success) {
     return { error: "البريد الإلكتروني وكلمة المرور مطلوبان" };
   }
+  const email = loginParsed.data.email;
+  const password = loginParsed.data.password;
 
   let success = false;
   try {
@@ -42,24 +51,32 @@ export async function login(
   return {};
 }
 
+const registerSchema = z.object({
+  email: z.string().email().trim().min(1),
+  password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
+  fullName: z.string().trim().min(1),
+  confirmPassword: z.string().min(1),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "كلمات المرور غير متطابقة",
+  path: ["confirmPassword"],
+});
+
 export async function register(
   _prevState: AuthResult | null,
   formData: FormData
 ): Promise<AuthResult> {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const fullName = formData.get("fullName") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
+  const registerParsed = registerSchema.safeParse({
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
+    fullName: formData.get("fullName") as string,
+    confirmPassword: formData.get("confirmPassword") as string,
+  });
 
-  if (!email?.trim() || !password || !fullName?.trim()) {
-    return { error: "جميع الحقول مطلوبة" };
+  if (!registerParsed.success) {
+    const firstError = registerParsed.error.issues[0]?.message;
+    return { error: firstError ?? "جميع الحقول مطلوبة" };
   }
-  if (password.length < 6) {
-    return { error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" };
-  }
-  if (password !== confirmPassword) {
-    return { error: "كلمات المرور غير متطابقة" };
-  }
+  const { email, password, fullName } = registerParsed.data;
 
   let success = false;
   try {

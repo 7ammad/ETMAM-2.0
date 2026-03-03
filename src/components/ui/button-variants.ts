@@ -8,7 +8,7 @@ export const buttonVariants = cva(
   [
     "inline-flex items-center justify-center gap-2 font-medium",
     "rounded-md transition-all duration-200",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-navy-950",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     "disabled:pointer-events-none disabled:opacity-50",
     "cursor-pointer select-none",
   ],
@@ -16,16 +16,16 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-gold-500 text-navy-950 hover:bg-gold-400 active:bg-gold-600 shadow-sm",
+          "bg-accent-500 text-white hover:bg-accent-400 active:bg-accent-600",
         secondary:
-          "bg-navy-700 text-navy-100 hover:bg-navy-600 active:bg-navy-800 border border-navy-600",
+          "bg-noir-800 text-zinc-200 hover:bg-noir-700 active:bg-noir-800 border border-noir-700",
         outline:
-          "border border-navy-600 text-navy-200 hover:bg-navy-800 hover:text-navy-50 active:bg-navy-700",
+          "border border-border text-foreground hover:bg-muted hover:text-foreground active:bg-muted/80",
         ghost:
-          "text-navy-300 hover:bg-navy-800 hover:text-navy-100 active:bg-navy-700",
+          "text-muted-foreground hover:bg-muted hover:text-foreground active:bg-muted/80",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-red-600 active:bg-red-700",
-        link: "text-gold-500 hover:text-gold-400 underline-offset-4 hover:underline p-0 h-auto",
+        link: "text-accent-500 hover:text-accent-400 underline-offset-4 hover:underline p-0 h-auto",
       },
       size: {
         sm: "h-8 px-3 text-sm",

@@ -17,7 +17,7 @@ function Spinner({ size = "md", className }: SpinnerProps) {
       role="status"
       aria-label="جاري التحميل"
       className={cn(
-        "animate-spin rounded-full border-gold-500/30 border-t-gold-500",
+        "animate-spin rounded-full border-accent-500/30 border-t-accent-500",
         sizeMap[size],
         className
       )}

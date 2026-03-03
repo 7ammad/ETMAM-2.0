@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import {
   type CriterionConfig,
   type CriterionFactors,
@@ -38,6 +39,8 @@ export async function getAutoFilledFactors(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "يجب تسجيل الدخول" };
 
+  z.string().uuid().parse(tenderId);
+
   const { data: tender, error } = await supabase
     .from("tenders")
     .select("*")
@@ -66,6 +69,13 @@ export async function evaluateConfigurable(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "يجب تسجيل الدخول" };
+
+  const evaluateConfigurableSchema = z.object({
+    tenderId: z.string().uuid(),
+    profileId: z.string().uuid(),
+    factorOverrides: z.record(z.string(), z.record(z.string(), z.unknown())).default({}),
+  });
+  evaluateConfigurableSchema.parse({ tenderId, profileId, factorOverrides });
 
   // Load tender
   const { data: tender, error: tenderErr } = await supabase
@@ -258,6 +268,17 @@ export async function createProfile(input: {
   } = await supabase.auth.getUser();
   if (!user) return { success: false as const, error: "يجب تسجيل الدخول" };
 
+  const createProfileSchema = z.object({
+    name: z.string().min(1),
+    criteria: z.array(z.object({
+      key: z.string(),
+      enabled: z.boolean(),
+      weight: z.number(),
+    })),
+    is_default: z.boolean().optional(),
+  });
+  createProfileSchema.parse(input);
+
   const validation = validateCriteriaWeights(input.criteria);
   if (!validation.valid) {
     return { success: false as const, error: validation.error! };
@@ -287,6 +308,20 @@ export async function updateProfile(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false as const, error: "يجب تسجيل الدخول" };
+
+  const updateProfileSchema = z.object({
+    profileId: z.string().uuid(),
+    input: z.object({
+      name: z.string().min(1).optional(),
+      criteria: z.array(z.object({
+        key: z.string(),
+        enabled: z.boolean(),
+        weight: z.number(),
+      })).optional(),
+      is_default: z.boolean().optional(),
+    }),
+  });
+  updateProfileSchema.parse({ profileId, input });
 
   if (input.criteria) {
     const validation = validateCriteriaWeights(input.criteria);
@@ -318,6 +353,8 @@ export async function deleteProfile(profileId: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false as const, error: "يجب تسجيل الدخول" };
+
+  z.string().uuid().parse(profileId);
 
   const { error } = await supabase
     .from("evaluation_presets")

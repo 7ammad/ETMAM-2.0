@@ -111,8 +111,8 @@ function Dropzone({
           "flex flex-col items-center justify-center gap-3 p-8 rounded-lg border-2 border-dashed cursor-pointer",
           "transition-all duration-200",
           isDragOver
-            ? "border-gold-500 bg-gold-500/5"
-            : "border-navy-600 hover:border-navy-500 bg-navy-900/50",
+            ? "border-accent-500 bg-accent-500/5"
+            : "border-border hover:border-border/80 bg-muted/50",
           disabled && "opacity-50 cursor-not-allowed",
           error && "border-confidence-low/50"
         )}
@@ -128,18 +128,18 @@ function Dropzone({
         <div
           className={cn(
             "p-3 rounded-full",
-            isDragOver ? "bg-gold-500/10" : "bg-navy-800"
+            isDragOver ? "bg-accent-500/10" : "bg-muted"
           )}
         >
           <Upload
             className={cn(
               "h-6 w-6",
-              isDragOver ? "text-gold-500" : "text-navy-400"
+              isDragOver ? "text-accent-500" : "text-muted-foreground"
             )}
           />
         </div>
         <div className="text-center">
-          <p className="text-sm text-navy-200">{label}</p>
+          <p className="text-sm text-foreground">{label}</p>
           {hint && (
             <p className="text-xs text-muted-foreground mt-1">{hint}</p>
           )}
@@ -160,16 +160,16 @@ function Dropzone({
           {files.map((file, i) => (
             <div
               key={`${file.name}-${i}`}
-              className="flex items-center gap-2 rounded-md bg-navy-800 border border-navy-700 p-2 text-sm"
+              className="flex items-center gap-2 rounded-md bg-muted border border-border p-2 text-sm"
             >
-              <FileText className="h-4 w-4 text-navy-400 shrink-0" />
-              <span className="flex-1 truncate text-navy-200">{file.name}</span>
+              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="flex-1 truncate text-foreground">{file.name}</span>
               <span className="text-xs text-muted-foreground ltr-nums">
                 {(file.size / 1024).toFixed(0)} KB
               </span>
               <button
                 onClick={() => removeFile(i)}
-                className="p-0.5 rounded hover:bg-navy-700 text-navy-400 hover:text-navy-200 transition-colors"
+                className="p-0.5 rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="إزالة الملف"
               >
                 <X className="h-3.5 w-3.5" />

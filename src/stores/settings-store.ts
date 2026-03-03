@@ -3,11 +3,10 @@ import { devtools, persist } from "zustand/middleware";
 import { DEFAULT_SCORING_WEIGHTS } from "@/lib/constants";
 
 interface ScoringWeights {
-  relevance: number;
-  budgetFit: number;
-  timeline: number;
-  competition: number;
-  strategic: number;
+  deliverableCategorization: number;
+  competitiveFeasibility: number;
+  riskAssessment: number;
+  companyFit: number;
 }
 
 interface SettingsStore {

@@ -14,11 +14,11 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
       <select
         ref={ref}
         className={cn(
-          "flex h-10 w-full appearance-none rounded-md bg-navy-800 px-3 py-2 text-sm text-navy-50",
-          "border border-navy-600 pe-10",
+          "flex h-10 w-full appearance-none rounded-md bg-muted px-3 py-2 text-sm text-foreground",
+          "border border-border pe-10",
           "transition-colors duration-200",
-          "hover:border-navy-500",
-          "focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-500",
+          "hover:border-border/80",
+          "focus:outline-none focus:ring-2 focus:ring-accent-500/40 focus:border-accent-500",
           "disabled:cursor-not-allowed disabled:opacity-50",
           error &&
             "border-confidence-low focus:ring-confidence-low/40 focus:border-confidence-low",
@@ -38,7 +38,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </option>
         ))}
       </select>
-      <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-navy-400 pointer-events-none" />
+      <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
     </div>
   )
 );

@@ -11,87 +11,220 @@
  * - Arabic reasoning for Arabic content
  */
 
-export const TENDER_ANALYSIS_PROMPT = `أنت خبير تحليل منافسات حكومية سعودية يعمل في شركة مقاولات. مهمتك تقييم هذه المنافسة لمساعدة فريق المبيعات في اتخاذ قرار المشاركة.
+export const TENDER_ANALYSIS_PROMPT = `أنت خبير تقييم منافسات حكومية في شركة EnfraTech المتخصصة في حلول تقنية المعلومات والاتصالات والأمن السيبراني في السعودية.
+
+لديك مهمتان في هذا الطلب:
+  المهمة 1: استخراج البيانات المتغيرة (Variable) من كراسة الشروط
+  المهمة 2: تقييم المنافسة بمنهجية EnfraTech لاتخاذ قرار المشاركة (Go/No-Go)
 
 ═══════════════════════════════
-بيانات المنافسة:
+كراسة الشروط والمواصفات:
 ═══════════════════════════════
 {tenderContent}
 
 ═══════════════════════════════
+⚡ فهم هيكل كراسات اعتماد:
+═══════════════════════════════
+
+كراسات الشروط في منصة اعتماد تتبع نموذج موحد من وزارة المالية.
+الأقسام الثابتة (Template) — تتكرر في كل منافسة ولا تتغير:
+  • التعريفات والأحكام العامة
+  • قواعد إعداد العروض (العربية، الريال السعودي، صلاحية 90 يوم)
+  • الضمانات المعيارية (ابتدائي 1%)
+  • إجراءات فحص العروض وفتحها
+  • الغرامات المعيارية (ضمان نهائي 5%، سقف غرامات 6-20%)
+
+الأقسام المتغيرة (Variable) — 7 أقسام تختلف من منافسة لأخرى وتُحسم قرار المشاركة:
+  1. هوية المشروع والجدول الزمني (الجهة، العنوان، الرقم، المواعيد، القيمة التقديرية)
+  2. نطاق العمل الفني SOW (ماذا يجب تنفيذه بالتحديد، المعايير المرجعية، المخرجات)
+  3. جدول الكميات والأسعار BOQ (بنود التسعير التفصيلية)
+  4. شروط التعاقد الخاصة (مدة التنفيذ، الغرامات، الضمانات، شروط الدفع)
+  5. المتطلبات التأهيلية (تصنيف مقاول، شهادات، خبرة، كوادر)
+  6. آلية التقييم (أقل سعر أم جودة وسعر، الأوزان)
+  7. الشروط الاستثنائية (أي شروط خاصة بهذا المشروع غير موجودة في النموذج المعياري)
+
+═══════════════════════════════
+المهمة 1 — استخراج البيانات المتغيرة:
+═══════════════════════════════
+
+اقرأ الكراسة بالكامل واستخرج البيانات التالية بدقة. ركّز على الأقسام المتغيرة وتجاهل الأقسام الثابتة.
+
+【أ】 هوية المشروع:
+  - الجهة الحكومية (entity): اسم الجهة الحكومية أو صاحب العمل (مثال: "وزارة الصحة"، "الهيئة السعودية للمياه")
+  - عنوان المنافسة (tender_title): العنوان الرسمي للمنافسة أو المشروع
+  - رقم المنافسة (tender_number): الرقم المرجعي الرسمي للمنافسة
+    ⚠️ تمييز رقم المنافسة عن التاريخ:
+    • رقم المنافسة عادة يحتوي على شرطات أو أحرف أو بادئة (مثال: "T-2026-0045"، "منافسة رقم 45/2026"، "1446/IT/003")
+    • أو يأتي بعد عبارة "رقم المنافسة" أو "رقم الإعلان" أو "رقم المشروع" مباشرة
+    • التاريخ يأتي بعد "تاريخ" أو "الموعد" أو "يوم" ويحتوي على يوم/شهر/سنة
+    • إذا وجدت رقماً صافياً بدون سياق واضح، تحقق هل هو في صف "رقم المنافسة" في الجدول أم في صف "التاريخ"
+    • لا تستخدم التاريخ كرقم منافسة أبداً
+  - الموعد النهائي (deadline) — بصيغة YYYY-MM-DD ميلادي
+    • ابحث عن: "آخر موعد لتقديم العروض" أو "تاريخ الإقفال" أو "الموعد النهائي"
+    • إذا وجدت تاريخاً هجرياً فقط، حوّله إلى ميلادي تقريبي
+  - القيمة التقديرية (estimated_value) — رقم صافي بالريال بدون فواصل
+  - وصف مختصر للمشروع (description) — 2-3 جمل
+
+【ب】 جدول الكميات والأسعار (BOQ):
+  ابحث عن "جدول الكميات" أو "جدول الأسعار" أو أي جدول يحتوي على أعمدة: بند، وصف، وحدة، كمية.
+  استخرج جميع البنود القابلة للتسعير:
+  - seq: الرقم التسلسلي
+  - category: الفئة (إن وجدت)
+  - description: وصف البند
+  - unit: وحدة القياس
+  - quantity: الكمية
+  ⚠️ بنود التسعير فقط — لا تقارير ولا معالم مشروع ولا مخرجات
+
+【ج】 شروط التعاقد الخاصة (غير المعيارية):
+  استخرج فقط الشروط التي تختلف عن النموذج المعياري:
+  - مدة التنفيذ (execution_period_days)
+  - نسبة غرامة التأخير والحد الأقصى
+  - الضمانات (إن اختلفت عن المعياري)
+  - شروط الدفع الخاصة
+  - أي شروط استثنائية
+
+【د】 المتطلبات التأهيلية:
+  - التصنيف المطلوب، الشهادات، الخبرة، المشاريع المماثلة
+
+【هـ】 النطاق الفني / نطاق العمل (SOW):
+  ابحث عن "نطاق العمل" أو "وصف المشروع التفصيلي" أو "الأعمال المطلوبة":
+  - scope_of_work: ملخص شامل لنطاق العمل (3-5 جمل)
+  - referenced_standards: المعايير المرجعية (SASO, ISO, IEC, NFPA...)
+  - deliverables: المخرجات والتسليمات الرئيسية
+  - execution_methodology: منهجية التنفيذ (إن وجدت)
+  - materials: المواد الرئيسية المطلوبة
+  - equipment: المعدات الرئيسية المطلوبة
+
+【و】 آلية التقييم:
+  - أقل سعر أم جودة وسعر؟ الأوزان إن وجدت.
+
+【ز】 الشروط الاستثنائية:
+  أي شروط خاصة بهذا المشروع تختلف عن النموذج المعياري (غير مذكورة أعلاه):
+  - متطلبات تأمين خاصة، شروط نقل ملكية، متطلبات أمنية، قيود جغرافية
+  - سجّلها في red_flags إن كانت تشكّل خطراً.
+
+═══════════════════════════════
+المهمة 2 — التقييم (بعد الاستخراج):
+═══════════════════════════════
+
 أوزان التقييم:
-═══════════════════════════════
-- التوافق التقني (relevance): {relevanceWeight}%
-- الملاءمة المالية (budget_fit): {budgetWeight}%
-- الجدول الزمني (timeline): {timelineWeight}%
-- مستوى المنافسة (competition): {competitionWeight}%
-- القيمة الاستراتيجية (strategic): {strategicWeight}%
+  - تصنيف المخرجات: {deliverableCatWeight}%
+  - الجدوى التنافسية: {competitiveFeasWeight}%
+  - المخاطر: {riskWeight}%
+  - التوافق الاستراتيجي: {companyFitWeight}%
 
-═══════════════════════════════
-وصف المعايير (منافسات حكومية سعودية — IT/اتصالات/أمن):
-═══════════════════════════════
-- التوافق التقني (relevance): هل متطلبات المنافسة تتوافق مع قدرات الشركة؟ هل لدينا الخبرة والشهادات والمنتجات المطلوبة؟ هل يمكننا تنفيذ نطاق العمل بالكامل؟
-- الملاءمة المالية (budget_fit): إذا توفرت بيانات التكاليف، قيّم: هل هامش الربح معقول (10-25% جيد)؟ هل سعر العرض أقل من القيمة التقديرية؟ هل التكاليف المباشرة وغير المباشرة متوازنة؟ إذا لم تتوفر بيانات التكاليف، قيّم بناءً على القيمة التقديرية ومتطلبات المنافسة.
-- الجدول الزمني (timeline): هل الموعد النهائي للتقديم كافٍ لإعداد عرض متكامل؟ هل مدة التنفيذ المطلوبة واقعية بالنسبة لمواردنا الحالية؟ هل هناك تداخل مع مشاريع قائمة؟
-- مستوى المنافسة (competition): كم عدد المنافسين المتوقع؟ هل المنافسة مفتوحة أو محدودة أو مستثناة؟ هل هناك متطلبات تأهيل تقلل المنافسة مثل تصنيف مقاولين أو شهادات محددة؟
-- القيمة الاستراتيجية (strategic): هل المنافسة مع جهة حكومية استراتيجية (وزارة، هيئة كبرى)؟ هل ستفتح فرص مستقبلية وعقود تشغيلية؟ هل تعزز سمعة الشركة وسجل أعمالها؟
+المعايير:
 
-═══════════════════════════════
-خطوات التحليل (نفذها بالترتيب):
-═══════════════════════════════
+1. تصنيف المخرجات (deliverable_categorization):
+   من بنود BOQ المستخرجة، صنّف إلى:
+   - تراخيص ومعدات (Hardware): منتجات من مصنّعين
+   - خدمات مهنية (PS): تنفيذ، تطوير، تركيب
+   - استشارات: تحليل، تصميم
+   - تدريب: دورات، نقل معرفة
+   اذكر عدد البنود ونسبة كل فئة.
 
-الخطوة 1: اقرأ بيانات المنافسة بعناية وحدد النقاط الرئيسية.
+2. التقدير المالي (Parametric Estimation):
+   قدّر التكلفة لكل فئة ثم طبق هوامش EnfraTech:
+   - PS واستشارات: +35%
+   - تراخيص ومعدات: +18%
+   - تدريب: +30%
+   أخرج نطاق سعري (min, max) مع تفصيل المعادلات.
 
-الخطوة 2: قيّم كل معيار باستخدام هذا الميزان:
-  90-100 = ممتاز: تطابق واضح مع قدراتنا، لا مخاطر تُذكر
-  70-89  = جيد: تطابق جيد مع بعض التحفظات البسيطة
-  50-69  = مقبول: تطابق جزئي، يحتاج مراجعة إضافية
-  30-49  = ضعيف: فجوات واضحة أو مخاطر ملموسة
-  0-29   = غير مناسب: لا تطابق أو مخاطر عالية جداً
+3. الجدوى التنافسية (competitive_feasibility):
+   - جديد (New) → فوز عالي
+   - تجديد ونحن الأصلي (Incumbent) → فوز عالي
+   - تجديد وطرف آخر أصلي → فوز ضعيف
+   - منافسة مفتوحة أم محدودة؟
 
-الخطوة 3: احسب الدرجة الإجمالية:
-  overall_score = (relevance × {relevanceWeight} + budget_fit × {budgetWeight} + timeline × {timelineWeight} + competition × {competitionWeight} + strategic × {strategicWeight}) / 100
+4. المخاطر (risk_assessment):
+   من الشروط الخاصة (غير المعيارية):
+   - مالية: غرامات عالية، ضمانات كبيرة
+   - تشغيلية: مدة ضيقة، كوادر كبيرة
+   - فنية: تقنيات غير مألوفة، تكامل أنظمة
 
-الخطوة 4: حدد التوصية بناءً على الدرجة الإجمالية:
-  overall_score ≥ 70  → "pursue" (متابعة)
-  40 ≤ overall_score < 70 → "review" (مراجعة)
-  overall_score < 40  → "skip" (تخطي)
+5. التوافق الاستراتيجي (company_fit):
+   - توافق مع قدرات EnfraTech (IT، اتصالات، أمن سيبراني)
+   - هل الجهة استراتيجية؟
+   - فرص مستقبلية؟
 
-الخطوة 5: استخرج الأدلة المباشرة من نص المنافسة (3 أدلة على الأقل).
-
-الخطوة 6: حدد أي علامات تحذيرية (red flags) ومواعيد مهمة.
+الخطوة الأخيرة — الدرجة والتوصية:
+  overall_score = مجموع (درجة × وزن) / مجموع الأوزان
+  ≥ 70 → "pursue" | 40-69 → "review" | < 40 → "skip"
 
 ═══════════════════════════════
 مخطط الإخراج (JSON فقط):
 ═══════════════════════════════
 {
-  "overall_score": <0-100 محسوبة بالصيغة أعلاه>,
+  "extracted_metadata": {
+    "entity": "<الجهة الحكومية|null>",
+    "tender_title": "<عنوان المنافسة|null>",
+    "tender_number": "<رقم المنافسة|null>",
+    "deadline": "<YYYY-MM-DD|null>",
+    "estimated_value": <رقم صافي بدون فواصل|null>,
+    "description": "<وصف مختصر 2-3 جمل|null>",
+    "boq_items": [
+      {"seq":1, "category":"<فئة|null>", "description":"<وصف>", "unit":"<وحدة|null>", "quantity":<رقم|null>}
+    ],
+    "contract_terms": {
+      "execution_period_days": <أيام|null>,
+      "delay_penalty_percent": <نسبة|null>,
+      "delay_penalty_max_percent": <حد أقصى|null>,
+      "initial_guarantee_percent": <نسبة|null>,
+      "final_guarantee_percent": <نسبة|null>,
+      "payment_terms": "<ملخص|null>"
+    },
+    "qualifications": {
+      "contractor_classification": "<التصنيف|null>",
+      "required_certifications": ["<شهادة>"],
+      "minimum_experience_years": <رقم|null>
+    },
+    "evaluation_method": {
+      "method": "<lowest_price|quality_and_cost|quality_only|null>",
+      "technical_weight": <نسبة|null>,
+      "financial_weight": <نسبة|null>
+    },
+    "technical_specs": {
+      "scope_of_work": "<ملخص نطاق العمل 3-5 جمل|null>",
+      "referenced_standards": ["<SASO...>", "<ISO...>"],
+      "deliverables": ["<مخرج رئيسي>"],
+      "execution_methodology": "<منهجية التنفيذ|null>",
+      "materials": ["<مادة رئيسية>"],
+      "equipment": ["<معدة رئيسية>"]
+    }
+  },
+  "overall_score": <0-100>,
   "confidence": "<high|medium|low>",
   "scores": {
-    "relevance": { "score": <0-100>, "reasoning": "<جملة أو جملتان بالعربي>" },
-    "budget_fit": { "score": <0-100>, "reasoning": "<جملة أو جملتان بالعربي>" },
-    "timeline": { "score": <0-100>, "reasoning": "<جملة أو جملتان بالعربي>" },
-    "competition": { "score": <0-100>, "reasoning": "<جملة أو جملتان بالعربي>" },
-    "strategic": { "score": <0-100>, "reasoning": "<جملة أو جملتان بالعربي>" }
+    "deliverable_categorization": { "score": <0-100>, "reasoning": "<تصنيف البنود>" },
+    "competitive_feasibility": { "score": <0-100>, "reasoning": "<تحليل>" },
+    "risk_assessment": { "score": <0-100>, "reasoning": "<المخاطر>" },
+    "company_fit": { "score": <0-100>, "reasoning": "<التوافق>" }
+  },
+  "parametric_estimate": {
+    "estimated_min_value": <SAR>,
+    "estimated_max_value": <SAR>,
+    "estimation_rationale": "<المعادلات والافتراضات>"
   },
   "evidence": [
-    { "text": "<اقتباس مباشر من المنافسة>", "relevance": "<supporting|concerning|neutral>", "source": "<القسم أو الموضع>" }
+    { "text": "<اقتباس مباشر من الكراسة>", "relevance": "<supporting|concerning|neutral>", "source": "<القسم>" }
   ],
   "recommendation": "<pursue|review|skip>",
-  "recommendation_reasoning": "<2-3 جمل بالعربي تشرح سبب التوصية>",
-  "red_flags": ["<قائمة المخاطر إن وجدت، بالعربي>"],
-  "key_dates": ["<المواعيد المستخرجة>"]
+  "recommendation_reasoning": "<2-3 جمل>",
+  "red_flags": ["<خطر بالعربي>"],
+  "key_dates": ["<موعد مستخرج>"]
 }
 
 ═══════════════════════════════
 القواعد الصارمة:
 ═══════════════════════════════
-1. الدرجة الإجمالية يجب أن تُحسب بالصيغة المرجحة أعلاه — لا تقدرها عشوائياً.
-2. الأدلة (evidence) يجب أن تكون اقتباسات حرفية من نص المنافسة — 3 أدلة على الأقل.
-3. إذا لم تجد معلومات كافية لتقييم معيار ما، أعطه درجة 50 واكتب "بيانات غير كافية" في reasoning، واضبط confidence على "low".
-4. لا تخترع معلومات غير موجودة في نص المنافسة.
-5. إذا كانت البيانات قصيرة جداً أو غير واضحة، اشرح ذلك في recommendation_reasoning.
-6. اكتب جميع التفسيرات (reasoning) والتوصيات بالعربية.
+1. extracted_metadata يجب أن يحتوي فقط على ما وجدته في الكراسة — لا تخمن.
+2. estimation_rationale يجب أن تتضمن المعادلات والافتراضات لكل فئة.
+3. ميّز بين الشروط المعيارية (Template) والخاصة (Variable) — قيّم المخاطر على الخاصة فقط.
+4. جميع النصوص بالعربية.
+5. JSON فقط — بدون أي نص قبل أو بعد.
+6. التاريخ YYYY-MM-DD ميلادي. هجري → حوّله تقريبياً.
+7. estimated_value رقم صافي (1500000 وليس "1,500,000 ريال").
+8. بنود BOQ: القابلة للتسعير فقط — لا تقارير ولا مخرجات.
 `;
 
 export const SECTION_TARGETED_EXTRACTION_PROMPT = `أنت مُستخرج بيانات متخصص في كراسات الشروط والمواصفات السعودية (منصة اعتماد).
@@ -460,8 +593,11 @@ export const PHASE2_REFINEMENT_PROMPT = `أنت مُراجع بيانات متخ
 9. ⚠️ بنود BOQ يجب أن تأتي حصرياً من "جدول الكميات والأسعار" — البنود القابلة للتسعير فقط.
 `;
 
-const RAW_TEXT_MAX_CHARS = 30_000;
-const BOQ_TEXT_BUDGET = 8_000;
+// Gemini 2.5 Flash has 1M token context window.
+// Tender booklets need 150-250K tokens → send as much text as possible.
+// 300K chars ≈ 75-100K tokens of Arabic text, leaving room for prompt + output.
+const RAW_TEXT_MAX_CHARS = 300_000;
+const BOQ_TEXT_BUDGET = 40_000;
 
 export function buildPhase2Prompt(
   preExtracted: Record<string, unknown>,
@@ -483,7 +619,7 @@ export function buildPhase2Prompt(
     truncated =
       rawText.length > RAW_TEXT_MAX_CHARS
         ? rawText.slice(0, RAW_TEXT_MAX_CHARS) +
-          "\n\n... [تم اقتطاع النص بسبب الحجم] ..."
+        "\n\n... [تم اقتطاع النص بسبب الحجم] ..."
         : rawText;
   }
 
@@ -498,6 +634,142 @@ export function buildPhase2Prompt(
  * The PDF file is sent as inline data alongside this prompt.
  * Phase 1 pre-extracted data is included as hints.
  */
+// ---------------------------------------------------------------------------
+// EnfraTech-targeted extraction prompt
+// Extracts exactly what feeds the 5 GO/NO-GO criteria — nothing more.
+//
+// Criterion → Data needed:
+//   تصنيف المخرجات     → Full BOQ items (to categorize licenses/PS/consulting/training)
+//   التقدير المالي      → estimated_value + BOQ + contract duration
+//   الجدوى التنافسية   → new/renewal signals + qualification requirements + competition type
+//   المخاطر            → contract_terms (penalties, guarantees, timeline)
+//   التوافق الاستراتيجي → scope_of_work summary + technical domain
+// ---------------------------------------------------------------------------
+
+const ENFRTECH_EXTRACTION_PROMPT = `أنت مُستخرج بيانات متخصص لشركة EnfraTech لتقييم كراسات الشروط السعودية.
+مهمتك: استخرج من ملف PDF المرفق البيانات التي تحتاجها EnfraTech لاتخاذ قرار المشاركة (Go/No-Go).
+
+━━━ ما تحتاجه EnfraTech فقط ━━━
+
+【أ】 البيانات الأساسية
+  - الجهة الحكومية، رقم المنافسة، العنوان، الموعد النهائي، القيمة التقديرية
+  - وصف مختصر (سطرين): ما هو نطاق العمل باختصار؟
+
+【ب】 جدول الكميات والأسعار (BOQ) — الأهم
+  ابحث عن جدول الكميات في قسم نطاق العمل. استخرج جميع البنود القابلة للتسعير:
+  - الرقم التسلسلي، وصف البند، الفئة (إن وجدت)، الوحدة، الكمية
+  - إذا وجدت جداول فرعية متعددة (جدول لكل خدمة/فئة) اجمعها في قائمة واحدة
+  - حدد نوع التسعير: مقطوعية (lump_sum) أم بالوحدة (unit_based) أم مختلط (mixed)
+  - استخرج حتى 40 بند. إذا أكثر، اذكر العدد الكامل في total_items_count.
+  - ⚠️ البنود القابلة للتسعير فقط — لا تقارير ولا مخرجات ولا معالم مشروع
+
+【ج】 الجدوى التنافسية — إشارات حرجة
+  ابحث عن:
+  - هل التراخيص المطلوبة جديدة أم تجديد؟ (كلمات دالة: "تجديد"، "renewal"، "ترخيص قائم")
+  - تصنيف المقاول/المورد المطلوب والشهادات والخبرة
+  - هل المنافسة مفتوحة أم محدودة؟ عدد المنافسين المتوقع؟
+
+【د】 المخاطر التعاقدية — من شروط العقد
+  استخرج من الشروط الخاصة أو شروط التعاقد:
+  - نسبة غرامة التأخير (يومية/أسبوعية) والحد الأقصى
+  - نسبة الضمان الابتدائي والنهائي
+  - مدة التنفيذ بالأيام أو الأشهر
+  - شروط دفع غير اعتيادية
+  - أي شروط استثنائية تُشكّل خطراً
+
+【هـ】 نطاق العمل التقني — جملتان فقط
+  ما هو المجال التقني الرئيسي؟ (IT، اتصالات، أمن سيبراني، توريد، خدمات إدارية...)
+  هل يذكر أنظمة أو تقنيات محددة؟
+
+━━━ مخطط الإخراج (JSON فقط) ━━━
+{
+  "entity": "<الجهة|null>",
+  "tender_title": "<العنوان|null>",
+  "tender_number": "<الرقم|null>",
+  "deadline": "<YYYY-MM-DD ميلادي|null>",
+  "estimated_value": <رقم صافي بدون فواصل|null>,
+  "description": "<وصف مختصر سطرين|null>",
+  "requirements": [],
+  "line_items": [],
+  "extracted_sections": {
+    "_version": 1,
+    "boq": {
+      "pricing_type": "<lump_sum|unit_based|mixed|null>",
+      "items": [
+        {"seq":1,"category":"<فئة|null>","description":"<وصف البند>","specifications":null,"unit":"<وحدة|null>","quantity":<رقم|null>,"confidence":90}
+      ],
+      "total_items_count": <العدد الكامل إذا تجاوز 40|null>,
+      "confidence": <0-100>
+    },
+    "technical_specs": {
+      "scope_of_work": "<وصف نطاق العمل التقني — جملتان|null>",
+      "referenced_standards": [],
+      "materials": [],
+      "equipment": [],
+      "deliverables": [],
+      "execution_methodology": null,
+      "confidence": <0-100>
+    },
+    "qualifications": {
+      "contractor_classification": "<التصنيف المطلوب|null>",
+      "required_certifications": ["<شهادة ISO أو CMMI أو غيرها>"],
+      "required_licenses": ["<ترخيص>"],
+      "minimum_experience_years": <رقم|null>,
+      "similar_projects_required": <رقم|null>,
+      "required_staff": [],
+      "local_content_requirement": <نسبة|null>,
+      "confidence": <0-100>
+    },
+    "contract_terms": {
+      "initial_guarantee_percent": <نسبة|null>,
+      "final_guarantee_percent": <نسبة|null>,
+      "delay_penalty_percent": <نسبة يومية|null>,
+      "delay_penalty_max_percent": <الحد الأقصى للغرامات|null>,
+      "execution_period_days": <أيام|null>,
+      "warranty_period_days": <أيام|null>,
+      "payment_terms": "<ملخص شروط الدفع|null>",
+      "advance_payment_percent": <نسبة|null>,
+      "retention_percent": <نسبة|null>,
+      "insurance_required": <true|false|null>,
+      "confidence": <0-100>
+    },
+    "evaluation_method": {
+      "method": "<lowest_price|quality_and_cost|quality_only|null>",
+      "financial_weight": <نسبة|null>,
+      "technical_weight": <نسبة|null>,
+      "min_technical_score": <درجة|null>,
+      "scoring_formula": "<الصيغة حرفياً|null>",
+      "local_content_target_percent": <نسبة|null>,
+      "evaluation_criteria": [],
+      "confidence": <0-100>
+    }
+  },
+  "confidence": {
+    "entity": <0-100>, "tender_title": <0-100>, "tender_number": <0-100>,
+    "deadline": <0-100>, "estimated_value": <0-100>, "description": <0-100>
+  },
+  "evidence": {
+    "entity": "<النص الأصلي|null>", "tender_title": null,
+    "tender_number": "<النص الأصلي|null>", "deadline": "<النص الأصلي|null>",
+    "estimated_value": null, "description": null
+  },
+  "overall_confidence": <0-100>,
+  "warnings": ["<تعارض أو ملاحظة مهمة>"],
+  "not_found": ["<أي قسم رئيسي مفقود>"]
+}
+
+━━━ القواعد ━━━
+1. استخرج فقط الموجود في الوثيقة — لا تخمن.
+2. التاريخ YYYY-MM-DD ميلادي. هجري → حوّله تقريبياً.
+3. estimated_value رقم صافي (مثال: 1500000 وليس "1,500,000 ريال").
+4. المصفوفات دائماً [] وليس null — إذا لم تجد بيانات اكتب مصفوفة فارغة.
+5. جميع النصوص بالعربية.
+6. أجب بـ JSON فقط — بدون أي نص قبل أو بعد.`;
+
+export function buildLeanPdfPrompt(): string {
+  return ENFRTECH_EXTRACTION_PROMPT;
+}
+
 export function buildPdfBinaryPrompt(
   preExtracted: Record<string, unknown> | null
 ): string {
@@ -533,19 +805,17 @@ export function buildAnalysisPrompt(
   tenderContent: string,
   weights: Record<string, number>
 ): string {
-  const r = String(weights.relevance ?? 30);
-  const b = String(weights.budgetFit ?? 25);
-  const t = String(weights.timeline ?? 20);
-  const c = String(weights.competition ?? 15);
-  const s = String(weights.strategic ?? 10);
+  const dc = String(weights.deliverableCategorization ?? 30);
+  const cf = String(weights.competitiveFeasibility ?? 30);
+  const ra = String(weights.riskAssessment ?? 20);
+  const com = String(weights.companyFit ?? 20);
 
   return TENDER_ANALYSIS_PROMPT
-    .replace("{tenderContent}", tenderContent)
-    .replaceAll("{relevanceWeight}", r)
-    .replaceAll("{budgetWeight}", b)
-    .replaceAll("{timelineWeight}", t)
-    .replaceAll("{competitionWeight}", c)
-    .replaceAll("{strategicWeight}", s);
+    .replace("{deliverableCatWeight}", dc)
+    .replace("{competitiveFeasWeight}", cf)
+    .replace("{riskWeight}", ra)
+    .replace("{companyFitWeight}", com)
+    .replace("{tenderContent}", tenderContent);
 }
 
 // ---------------------------------------------------------------------------

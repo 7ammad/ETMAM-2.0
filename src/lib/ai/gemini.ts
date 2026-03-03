@@ -1,12 +1,14 @@
 /**
- * Gemini AI provider — uses @google/generative-ai SDK.
- * Model: gemini-2.5-flash (fast, good Arabic support, free tier via AI Studio).
+ * Gemini AI provider — uses @google/genai SDK (v1.x).
+ * Model: gemini-3-flash-preview (fastest, good Arabic support, via AI Studio).
  *
  * Two-phase extraction pipeline:
  *   Phase 1: Deterministic pre-extraction (regex/heuristics, no API call)
  *   Phase 2: AI refinement (text-only, reviews pre-extracted data)
+ *
+ * Thinking is DISABLED (thinkingBudget: 0) for extraction — cuts 30-40s.
  */
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI, type GenerateContentResponse } from "@google/genai";
 import type { AIProvider, AIAnalysisResult, ExtractionResult } from "./provider";
 import { buildAnalysisPrompt, buildPhase2Prompt, buildPdfBinaryPrompt } from "./prompts";
 import {
@@ -16,13 +18,10 @@ import {
   extractionResponseSchema,
 } from "./parser";
 import { withRetry, withTimeout, classifyError, AIError } from "./retry";
-import {
-  runDeterministicExtraction,
-  type PreExtractionResult,
-} from "@/lib/pdf";
+import { runDeterministicExtraction, type PreExtractionResult } from "@/lib/pdf";
 
-const AI_TIMEOUT_MS = 30_000;
-const PDF_TIMEOUT_MS = 120_000;
+const AI_TIMEOUT_MS = 120_000; // 2 min — evaluation with rich tender content
+const PDF_TIMEOUT_MS = 180_000; // 3 min — with thinking off, extraction is much faster
 
 /**
  * Attempt to repair JSON truncated by MAX_TOKENS.
@@ -78,10 +77,10 @@ function convertPreExtractionToAIInput(
       );
       boq = null; // Force AI to re-extract
     } else {
-      // Cap BOQ items to 25 to avoid overwhelming the AI context window
+      // Cap BOQ items to 60 — Gemini 2.5 Flash has 1M context, send more
       const cappedBoq = { ...pre.boq };
-      if (cappedBoq.items.length > 25) {
-        cappedBoq.items = cappedBoq.items.slice(0, 25);
+      if (cappedBoq.items.length > 60) {
+        cappedBoq.items = cappedBoq.items.slice(0, 60);
         cappedBoq.total_items_count = pre.boq.items.length;
       }
       boq = cappedBoq as unknown as Record<string, unknown>;
@@ -134,40 +133,53 @@ function convertPreExtractionToAIInput(
   };
 }
 
+/** Extract text safely from a GenerateContentResponse */
+function getResponseText(response: GenerateContentResponse): string {
+  const text = response.text;
+  if (!text?.trim()) {
+    throw new AIError("Gemini أرجع استجابة فارغة", "INVALID_RESPONSE", true);
+  }
+  return text;
+}
+
 export class GeminiProvider implements AIProvider {
-  readonly modelName = "gemini-2.5-flash";
-  private genAI: GoogleGenerativeAI;
+  readonly modelName = "gemini-3-flash-preview";
+  private ai: GoogleGenAI;
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not set");
     }
-    this.genAI = new GoogleGenerativeAI(apiKey);
+    this.ai = new GoogleGenAI({ apiKey });
   }
 
   async analyze(
     tenderContent: string,
     weights: Record<string, number>
   ): Promise<AIAnalysisResult> {
-    const model = this.genAI.getGenerativeModel({
-      model: this.modelName,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.3,
-        maxOutputTokens: 2000,
-      },
-    });
-
     const prompt = buildAnalysisPrompt(tenderContent, weights);
 
     try {
       const result = await withRetry(
         () =>
-          withTimeout(model.generateContent(prompt), AI_TIMEOUT_MS),
-        { maxRetries: 1, baseDelayMs: 2000 }
+          withTimeout(
+            this.ai.models.generateContent({
+              model: this.modelName,
+              contents: prompt,
+              config: {
+                responseMimeType: "application/json",
+                temperature: 0.3,
+                maxOutputTokens: 16_384,
+                // Thinking ON for evaluation — needs deep reasoning on 5 criteria
+                thinkingConfig: { thinkingBudget: -1 },
+              },
+            }),
+            AI_TIMEOUT_MS
+          ),
+        { maxRetries: 2, baseDelayMs: 800 }
       );
-      const text = result.response.text();
+      const text = getResponseText(result);
       const json = extractJSON(text);
       const parsed = analysisResponseSchema.parse(JSON.parse(json));
       return parsed;
@@ -178,78 +190,149 @@ export class GeminiProvider implements AIProvider {
 
   async extractFromPDF(
     fileBuffer: Buffer,
-    _fileName: string
+    _fileName: string,
+    options?: { lean?: boolean }
   ): Promise<ExtractionResult> {
     const startTime = Date.now();
+    const isLean = options?.lean ?? false;
 
-    // ═══════════════════════════════════════════════
-    // Phase 1: Deterministic pre-extraction (no API)
-    // ═══════════════════════════════════════════════
-    let preExtraction: PreExtractionResult | null = null;
-    try {
-      preExtraction = await runDeterministicExtraction(fileBuffer);
-      console.log(
-        "[Phase 1] Deterministic extraction complete:",
-        preExtraction.detected_sections.length,
-        "sections detected,",
-        "confidence:",
-        preExtraction.overall_confidence,
-        "time:",
-        preExtraction.extraction_time_ms,
-        "ms"
-      );
-    } catch (err) {
-      console.warn("[Phase 1] Failed, will proceed with text-only AI extraction:", err);
-    }
+    // ─── FAST PATH: text extraction + Phase 2 AI refinement ─────────────────
+    if (isLean) {
+      console.info(`[Extraction LEAN] Running deterministic extraction on ${Math.round(fileBuffer.length / 1024)} KB PDF`);
+      const pre = await runDeterministicExtraction(fileBuffer);
+      console.info(`[Extraction LEAN] Deterministic done in ${pre.extraction_time_ms}ms, confidence=${pre.overall_confidence}, sections=${pre.detected_sections.length}`);
 
-    // ═══════════════════════════════════════════════
-    // Phase 2: AI extraction with PDF binary
-    // ═══════════════════════════════════════════════
-    const model = this.genAI.getGenerativeModel({
-      model: this.modelName,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.1,
-        maxOutputTokens: 32768,
-      },
-    });
+      const { json: preJson, extraWarnings } = convertPreExtractionToAIInput(pre);
 
-    try {
-      // Build prompt with Phase 1 hints
-      let preExtractedForAI: Record<string, unknown> | null = null;
-      if (preExtraction && (preExtraction.raw_text.length > 200 || preExtraction.overall_confidence > 0)) {
-        const { json, extraWarnings } = convertPreExtractionToAIInput(preExtraction);
-        preExtractedForAI = json;
-        if (extraWarnings.length > 0) {
-          console.log("[Phase 2] BOQ warnings:", extraWarnings);
-        }
+      // ─── FAST EXIT: if Phase 1 got enough data, skip AI entirely (~1-2s total) ──
+      const hasBasics = preJson.entity && preJson.tender_title && preJson.tender_number;
+      const hasBoq = pre.boq.items.length > 0 && !hasSuspiciousBOQ(pre);
+      const highConfidence = pre.overall_confidence >= 50;
+
+      if (hasBasics && hasBoq && highConfidence && extraWarnings.length === 0) {
+        console.info(`[Extraction LEAN] Phase 1 sufficient (confidence=${pre.overall_confidence}, BOQ=${pre.boq.items.length} items) — skipping AI call`);
+        const normalized = normalizeExtractionResponse(preJson);
+        const validated = extractionResponseSchema.parse(normalized);
+        return {
+          ...validated,
+          description: validated.description ?? null,
+          extracted_sections: validated.extracted_sections ?? null,
+          cached: false,
+          model_used: "deterministic-phase1",
+          processing_time_ms: Date.now() - startTime,
+        };
       }
 
-      const prompt = buildPdfBinaryPrompt(preExtractedForAI);
+      // ─── Phase 2: AI refinement with section-targeted text ───────────────
+      const sectionTexts: string[] = [];
+      sectionTexts.push(pre.raw_text.slice(0, 15_000));
+      for (const sec of pre.detected_sections) {
+        if (sec.text && sec.text.length > 100) {
+          sectionTexts.push(
+            `\n═══ القسم ${sec.sectionNumber}: ${sec.arabicName} ═══\n` +
+            sec.text.slice(0, 12_000)
+          );
+        }
+      }
+      const targetedText = sectionTexts.join("\n");
+      console.info(`[Extraction LEAN] Targeted text: ${Math.round(targetedText.length / 1000)}K chars (from ${Math.round(pre.raw_text.length / 1000)}K raw)`);
 
-      // Send PDF binary + prompt to Gemini
+      const textPrompt = buildPhase2Prompt(preJson, targetedText, pre.boq_section_text);
+
+      try {
+        console.info(`[Extraction LEAN] Sending ${Math.round(textPrompt.length / 1000)}K chars prompt to Gemini (thinking OFF)`);
+        const result = await withRetry(
+          () =>
+            withTimeout(
+              this.ai.models.generateContent({
+                model: this.modelName,
+                contents: textPrompt,
+                config: {
+                  responseMimeType: "application/json",
+                  temperature: 0.1,
+                  maxOutputTokens: 65_536,
+                  thinkingConfig: { thinkingBudget: 0 },
+                },
+              }),
+              PDF_TIMEOUT_MS
+            ),
+          { maxRetries: 1, baseDelayMs: 800 }
+        );
+
+        const response = result;
+        if (!response.candidates?.length) {
+          const reason = response.promptFeedback?.blockReason ?? "unknown";
+          throw new AIError(`الاستجابة محظورة من Gemini (${reason})`, "INVALID_RESPONSE", false);
+        }
+
+        const text = getResponseText(response);
+        const json = extractJSON(text);
+        let parsed: Record<string, unknown>;
+        try {
+          parsed = JSON.parse(json);
+        } catch {
+          console.warn("[Extraction LEAN] JSON.parse failed. Attempting repair...");
+          const repaired = repairTruncatedJSON(json);
+          if (repaired) {
+            console.info("[Extraction LEAN] JSON repaired successfully.");
+            parsed = repaired;
+          } else {
+            console.error("[Extraction LEAN] JSON repair failed. Raw text (first 500 chars):", text.slice(0, 500));
+            throw new AIError("فشل تحليل JSON من Gemini", "INVALID_RESPONSE", true);
+          }
+        }
+
+        const normalized = normalizeExtractionResponse(parsed);
+        const validated = extractionResponseSchema.parse(normalized);
+        console.info(`[Extraction LEAN] Done in ${Date.now() - startTime}ms total`);
+        return {
+          ...validated,
+          description: validated.description ?? null,
+          extracted_sections: validated.extracted_sections ?? null,
+          cached: false,
+          model_used: this.modelName,
+          processing_time_ms: Date.now() - startTime,
+        };
+      } catch (err) {
+        console.error("[Gemini extractFromPDF LEAN] Error:", err);
+        throw classifyError(err);
+      }
+    }
+
+    // ─── FULL PATH: binary PDF to Gemini ────────────────────────────────────
+    try {
+      const prompt = buildPdfBinaryPrompt(null);
       const pdfBase64 = fileBuffer.toString("base64");
-      console.log("[Phase 2] Sending PDF binary to Gemini (" + Math.round(fileBuffer.length / 1024) + " KB)");
+      console.info(`[Extraction FULL] Sending PDF to Gemini (${Math.round(fileBuffer.length / 1024)} KB, thinking OFF)`);
 
       const result = await withRetry(
         () =>
           withTimeout(
-            model.generateContent([
-              {
-                inlineData: {
-                  data: pdfBase64,
-                  mimeType: "application/pdf",
+            this.ai.models.generateContent({
+              model: this.modelName,
+              contents: [
+                {
+                  inlineData: {
+                    data: pdfBase64,
+                    mimeType: "application/pdf",
+                  },
                 },
+                { text: prompt },
+              ],
+              config: {
+                responseMimeType: "application/json",
+                temperature: 0.1,
+                maxOutputTokens: 65_536,
+                thinkingConfig: { thinkingBudget: 0 },
               },
-              prompt,
-            ]),
+            }),
             PDF_TIMEOUT_MS
           ),
-        { maxRetries: 1, baseDelayMs: 3000 }
+        { maxRetries: 2, baseDelayMs: 800 }
       );
 
       // Handle blocked/empty responses
-      const response = result.response;
+      const response = result;
       if (!response.candidates?.length) {
         const reason = response.promptFeedback?.blockReason ?? "unknown";
         console.error("[Gemini extractFromPDF] No candidates. Block reason:", reason);
@@ -270,23 +353,14 @@ export class GeminiProvider implements AIProvider {
         );
       }
 
-      let text: string;
-      try {
-        text = response.text();
-      } catch {
-        throw new AIError("Gemini أرجع استجابة بدون نص", "INVALID_RESPONSE", true);
-      }
-      console.log("[Gemini extractFromPDF] raw response length:", text.length, "finishReason:", finishReason);
-
-      if (!text.trim()) {
-        throw new AIError("Gemini أرجع استجابة فارغة", "INVALID_RESPONSE", true);
-      }
+      const text = getResponseText(response);
+      console.info("[Gemini extractFromPDF] raw response length:", text.length, "finishReason:", finishReason);
 
       const json = extractJSON(text);
       let parsed: Record<string, unknown>;
       try {
         parsed = JSON.parse(json);
-      } catch (jsonErr) {
+      } catch {
         if (finishReason === "MAX_TOKENS") {
           console.warn("[Gemini extractFromPDF] MAX_TOKENS — attempting JSON repair");
           const repaired = repairTruncatedJSON(json);
@@ -302,7 +376,7 @@ export class GeminiProvider implements AIProvider {
           }
         } else {
           console.error("[Gemini extractFromPDF] JSON.parse failed. Raw text (first 500 chars):", text.slice(0, 500));
-          throw jsonErr;
+          throw new AIError("فشل تحليل JSON من Gemini", "INVALID_RESPONSE", true);
         }
       }
 

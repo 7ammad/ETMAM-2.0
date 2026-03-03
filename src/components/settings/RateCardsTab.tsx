@@ -59,7 +59,7 @@ export function RateCardsTab() {
   return (
     <div className="space-y-6" dir="rtl">
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-1">رفع بطاقة أسعار</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-1">رفع عرض أسعار مورد</h3>
         <p className="text-xs text-muted-foreground mb-3">
           CSV أو Excel: أعمدة البند، التصنيف، الوحدة، سعر الوحدة (أو item_name, category, unit, unit_price)
         </p>
@@ -95,7 +95,7 @@ export function RateCardsTab() {
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-2">بطاقات الأسعار</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-2">عروض أسعار الموردين</h3>
         {loading ? (
           <p className="text-sm text-muted-foreground">جاري التحميل...</p>
         ) : cards.length === 0 ? (
@@ -103,10 +103,10 @@ export function RateCardsTab() {
             لا توجد بطاقات أسعار. ارفع ملف CSV أو Excel أعلاه.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="overflow-x-auto rounded-xl border border-border/40">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
+                <tr className="border-b border-border/40 bg-muted/20">
                   <th className="text-start p-3 font-medium text-foreground">الاسم</th>
                   <th className="text-start p-3 font-medium text-foreground">الملف</th>
                   <th className="text-start p-3 font-medium text-foreground ltr-nums">عدد البنود</th>
@@ -116,7 +116,7 @@ export function RateCardsTab() {
               </thead>
               <tbody>
                 {cards.map((card) => (
-                  <tr key={card.id} className="border-b border-border last:border-0">
+                  <tr key={card.id} className="border-b border-border/40 last:border-0 transition-colors hover:bg-muted/30">
                     <td className="p-3 text-foreground">{card.name}</td>
                     <td className="p-3 text-muted-foreground">{card.file_name}</td>
                     <td className="p-3 ltr-nums text-foreground">{card.item_count}</td>

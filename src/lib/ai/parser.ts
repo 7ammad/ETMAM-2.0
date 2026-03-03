@@ -4,7 +4,51 @@
  */
 import { z } from "zod/v4";
 
+// Extracted metadata from the combined Extract+Evaluate prompt
+const extractedMetadataSchema = z.object({
+  entity: z.string().nullable().optional(),
+  tender_title: z.string().nullable().optional(),
+  tender_number: z.string().nullable().optional(),
+  deadline: z.string().nullable().optional(),
+  estimated_value: z.coerce.number().nullable().optional(),
+  description: z.string().nullable().optional(),
+  boq_items: z.array(z.object({
+    seq: z.coerce.number(),
+    category: z.string().nullable().optional(),
+    description: z.string(),
+    unit: z.string().nullable().optional(),
+    quantity: z.coerce.number().nullable().optional(),
+  })).optional().default([]),
+  contract_terms: z.object({
+    execution_period_days: z.coerce.number().nullable().optional(),
+    delay_penalty_percent: z.coerce.number().nullable().optional(),
+    delay_penalty_max_percent: z.coerce.number().nullable().optional(),
+    initial_guarantee_percent: z.coerce.number().nullable().optional(),
+    final_guarantee_percent: z.coerce.number().nullable().optional(),
+    payment_terms: z.string().nullable().optional(),
+  }).optional(),
+  qualifications: z.object({
+    contractor_classification: z.string().nullable().optional(),
+    required_certifications: z.array(z.string()).optional().default([]),
+    minimum_experience_years: z.coerce.number().nullable().optional(),
+  }).optional(),
+  evaluation_method: z.object({
+    method: z.string().nullable().optional(),
+    technical_weight: z.coerce.number().nullable().optional(),
+    financial_weight: z.coerce.number().nullable().optional(),
+  }).optional(),
+  technical_specs: z.object({
+    scope_of_work: z.string().nullable().optional(),
+    referenced_standards: z.array(z.string()).optional().default([]),
+    deliverables: z.array(z.string()).optional().default([]),
+    execution_methodology: z.string().nullable().optional(),
+    materials: z.array(z.string()).optional().default([]),
+    equipment: z.array(z.string()).optional().default([]),
+  }).optional(),
+}).optional();
+
 export const analysisResponseSchema = z.object({
+  extracted_metadata: extractedMetadataSchema,
   overall_score: z.number().min(0).max(100),
   confidence: z.enum(["high", "medium", "low"]),
   scores: z.record(
@@ -25,6 +69,11 @@ export const analysisResponseSchema = z.object({
   recommendation_reasoning: z.string(),
   red_flags: z.array(z.string()),
   key_dates: z.array(z.string()),
+  parametric_estimate: z.object({
+    estimated_min_value: z.number(),
+    estimated_max_value: z.number(),
+    estimation_rationale: z.string(),
+  }).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -42,7 +91,7 @@ const boqItemSchema = z.object({
 });
 
 const boqSchema = z.object({
-  pricing_type: z.enum(["lump_sum", "unit_based", "mixed"]).nullable().default(null),
+  pricing_type: z.string().nullable().default(null),
   items: z.array(boqItemSchema).default([]),
   total_items_count: z.coerce.number().nullable().default(null),
   confidence: z.coerce.number().default(0),
@@ -88,7 +137,7 @@ const contractTermsSchema = z.object({
 });
 
 const evaluationMethodSchema = z.object({
-  method: z.enum(["lowest_price", "quality_and_cost", "quality_only"]).nullable().default(null),
+  method: z.string().nullable().default(null),
   financial_weight: z.coerce.number().nullable().default(null),
   technical_weight: z.coerce.number().nullable().default(null),
   min_technical_score: z.coerce.number().nullable().default(null),

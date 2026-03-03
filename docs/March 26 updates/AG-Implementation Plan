@@ -1,0 +1,72 @@
+# Goal Description
+
+The objective is to overhaul the Etmam application flow to match the new business requirements based on the "InfraTech Tender Evaluation process". The previous complex flow involving Spec Cards, Product Nominations, and granular Cost Estimation tabs is being **completely removed**.
+
+Instead, the application will use a streamlined, fully automated 4-step pipeline that culminates in pushing a CRM Opportunity directly to Odoo.
+
+## User Review Required
+
+> [!IMPORTANT]
+> Please review this updated action plan. It removes the features you requested and outlines the new AI Evaluation criteria and Odoo integration. Confirm this is the exact flow you want before I start deleting code.
+
+### 1. The New Strict Auto-Flow Pipeline
+The pipeline (`processTenderPipeline`) will be updated to execute these core steps:
+
+**Step A (Fully Automated): Triage & Categorization**
+1. **Extract Data from PDF**: Focuses on parsing the Detailed Scope of Work, BOQ, and Special Conditions.
+2. **Save Tender**: Stores the extracted raw data.
+3. **AI Evaluation (Triage & Categorization)**:
+    - **Deliverable Categorization**: Buckets BOQ items into Vendor Licenses & Hardware, Professional Services (PS), Consultations, or Training.
+    - **Competitive Feasibility**: Evaluates "New vs. Renew" rules to determine win probability (incumbent advantage).
+    - **Risk & Strategic Fit**: Identifies risks and determines if the tender fits InfraTech or ExoTech.
+
+**Step B (Fully Automated): AI-Driven Parametric Cost Estimation**
+Because we cannot pause for human input (Zero HITL), and we have no fixed rate cards, we will use the AI's general market knowledge to perform **Parametric Estimation**. To prevent black-box hallucinations, the AI will be forced to show its math.
+1. **Phase 1 (Low Latency): Training Data Baseline**: The AI will rely on its pre-trained knowledge to assume a rough Baseline Market Cost (e.g., "Senior Cloud Architect ≈ 3000 SAR/day", "Cisco Switch MSRP ≈ 50,000 SAR"). *Note: The AI does not know real-time internal B2B discounts or exact current prices, so its baseline is an educated industry average.*
+2. **Phase 2 (Roadmap): RAG/WebSearch Injection**: In a future iteration, the pipeline can be extended to either plug into a local RAG database of your previous vendor quotes, or perform a live Web Search for missing MSRPs before estimating.
+3. **Margin Strictness**: The AI applies the hardcoded business margins to its assumed baseline costs (PS = +35%, Hardware/Licenses = +18%).
+4. **Transparent Range Output**: Instead of a single hallucinated number, the AI *must* output an `estimated_min_value`, an `estimated_max_value`, and an `estimation_rationale`.
+5. **The Rationale Log**: The `estimation_rationale` will be a human-readable text block detailing exactly what unit costs the AI assumed and the formula it used to reach the total. This turns a "guess" into a verifiable, reasoned estimate that human agents can quickly validate in Odoo.
+
+**Step C: CRM Handoff**
+4. **Push to Odoo (New)**: Automatically generates a CRM opportunity containing the Categorization, Triage/Risk data, the Estimated Value Range, and the AI's Pricing Rationale for the sales team to review.
+
+### 2. Frontend Restructuring
+**What is being completely deleted:**
+- **Spec Cards** (`SpecCardsTab.tsx`, `app/actions/spec-cards.ts`, database tables if applicable).
+- **Product Nominations** (`NominationsTab.tsx`, `app/actions/nominations.ts`, database tables).
+- **Cost Estimation** (`CostEstimateTab.tsx`, `app/actions/costs.ts`).
+
+**What the UI will look like:**
+- **Upload Page (`TenderUpload.tsx`)**:
+  - The stepper will show: Extract -> Save -> Evaluate -> Push to Odoo.
+  - Upon completion, the detailed **Evaluation Results** (categorization, margins, win probability, risks) will render directly *underneath* the stepper without navigating away.
+- **Tender Detail Page (`TenderDetailClient.tsx`)**:
+  - The complex tab system will be removed.
+  - It will be a clean, read-only dashboard showing the Tender Overview and the AI Evaluation Results.
+
+## Proposed Changes
+
+### Clean Up Old Flow (Deletions)
+- **[DELETE]** `src/components/tender/SpecCardsTab.tsx`
+- **[DELETE]** `src/components/tender/NominationsTab.tsx`
+- **[DELETE]** `src/components/tender/CostEstimateTab.tsx`
+- **[MODIFY]** `src/components/tender/TenderDetailClient.tsx`: Remove all tabs, leaving only Overview and Evaluation.
+
+### Update Backend Pipeline & Prompts
+- **[MODIFY]** `src/lib/constants.ts` or `src/lib/ai/prompts.ts`: Rewrite the AI Evaluation prompt to strictly follow the 5 criteria from the `InfraTech Tender Evaluation process.md` document.
+- **[MODIFY]** `src/app/actions/pipeline.ts`: Update the pipeline to sequence the 4 steps (Extract, Save, Evaluate, Push to Odoo).
+- **[NEW]** Setup standard Odoo API integration logic for creating CRM opportunities.
+
+### Update Upload UI
+- **[MODIFY]** `src/components/tender/TenderUpload.tsx`:
+  - Update `PipelineStepper` steps to match the new 4-step flow.
+  - Add logic to display the Evaluation Results immediately upon pipeline completion.
+
+## Verification Plan
+### Manual Verification
+- Upload a sample PDF.
+- Verify the stepper shows the 4 steps and completes without error.
+- Verify the results appear directly beneath the stepper, displaying the new evaluation criteria (Categorization, Margins, New/Renew probability).
+- Verify the Tender Detail page no longer shows tabs for Specs/Nominations/Costs.
+- Verify Odoo CRM receives the new opportunity (mocked or real depending on credentials).

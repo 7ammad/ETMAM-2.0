@@ -24,7 +24,7 @@ export function RegisterForm() {
           type="text"
           required
           autoComplete="name"
-          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/40 transition-colors"
           placeholder="الاسم الكامل"
         />
       </div>
@@ -43,7 +43,7 @@ export function RegisterForm() {
           required
           autoComplete="email"
           dir="ltr"
-          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/40 transition-colors"
           placeholder="you@example.com"
         />
       </div>
@@ -63,7 +63,7 @@ export function RegisterForm() {
           autoComplete="new-password"
           dir="ltr"
           minLength={6}
-          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/40 transition-colors"
         />
       </div>
 
@@ -82,7 +82,7 @@ export function RegisterForm() {
           autoComplete="new-password"
           dir="ltr"
           minLength={6}
-          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/40 transition-colors"
         />
       </div>
 
@@ -98,14 +98,14 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-gold-600 disabled:opacity-50"
+        className="w-full rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-400 disabled:opacity-50"
       >
         {isPending ? "جارٍ إنشاء الحساب..." : "إنشاء حساب"}
       </button>
 
       <p className="text-center text-sm text-muted-foreground">
         لديك حساب بالفعل؟{" "}
-        <Link href="/login" className="text-gold-500 hover:underline">
+        <Link href="/login" className="text-accent-500 hover:underline">
           تسجيل الدخول
         </Link>
       </p>

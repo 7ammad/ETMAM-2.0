@@ -75,6 +75,7 @@ export async function savePdfTender(input: {
   extraction_confidence?: number;
   extraction_warnings: string[];
   source_file_name: string;
+  raw_text?: string;
 }): Promise<SavePdfTenderResult> {
   try {
     const supabase = await createClient();
@@ -143,6 +144,7 @@ export async function savePdfTender(input: {
       source_type: "pdf" as const,
       source_file_name: input.source_file_name,
       source_file_path: null,
+      raw_text: input.raw_text ?? null,
       extraction_confidence: Math.round(Number(input.extraction_confidence) || 0),
       extraction_warnings: input.extraction_warnings,
       status: "new" as const,

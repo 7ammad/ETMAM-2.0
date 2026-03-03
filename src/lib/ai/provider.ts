@@ -22,6 +22,24 @@ export interface AIAnalysisResult {
   recommendation_reasoning: string;
   red_flags: string[];
   key_dates: string[];
+  parametric_estimate?: {
+    estimated_min_value: number;
+    estimated_max_value: number;
+    estimation_rationale: string;
+  };
+  extracted_metadata?: {
+    entity?: string | null;
+    tender_title?: string | null;
+    tender_number?: string | null;
+    deadline?: string | null;
+    estimated_value?: number | null;
+    description?: string | null;
+    boq_items?: { seq: number; category?: string | null; description: string; unit?: string | null; quantity?: number | null }[];
+    contract_terms?: Record<string, unknown>;
+    qualifications?: Record<string, unknown>;
+    evaluation_method?: Record<string, unknown>;
+    technical_specs?: Record<string, unknown>;
+  };
 }
 
 export interface ExtractionResult {
@@ -49,10 +67,15 @@ export interface ExtractionResult {
   processing_time_ms: number;
 }
 
+export interface ExtractionOptions {
+  /** Use lean prompt for fast GO/NO-GO pipeline (skips deep section extraction) */
+  lean?: boolean;
+}
+
 export interface AIProvider {
   readonly modelName: string;
   analyze(tenderContent: string, weights: Record<string, number>): Promise<AIAnalysisResult>;
-  extractFromPDF(fileBuffer: Buffer, fileName: string): Promise<ExtractionResult>;
+  extractFromPDF(fileBuffer: Buffer, fileName: string, options?: ExtractionOptions): Promise<ExtractionResult>;
 }
 
 export type AIProviderId = "deepseek" | "gemini" | "groq";

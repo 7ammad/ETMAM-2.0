@@ -90,7 +90,7 @@ const dict = {
   status: { ar: "الحالة", en: "Status" },
 
   // ── Settings tabs ──
-  rateCards: { ar: "بطاقات الأسعار", en: "Rate Cards" },
+  rateCards: { ar: "عروض أسعار الموردين", en: "Vendor Quotes" },
   evalCriteria: { ar: "معايير التقييم", en: "Evaluation Criteria" },
   odooCrm: { ar: "ربط Odoo/CRM", en: "Odoo/CRM" },
   aiProvider: { ar: "مزود الذكاء الاصطناعي", en: "AI Provider" },

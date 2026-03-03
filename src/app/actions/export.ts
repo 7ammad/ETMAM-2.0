@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import * as XLSX from "xlsx";
@@ -25,6 +26,8 @@ export async function exportTenderToExcel(tenderId: string): Promise<ExportExcel
   if (authError || !user) {
     return { success: false, error: "يجب تسجيل الدخول" };
   }
+
+  z.string().uuid().parse(tenderId);
 
   try {
     const { data: tender, error: tenderError } = await supabase
@@ -125,9 +128,7 @@ const QUALIFIED_SCORE_THRESHOLD = 70;
 export async function exportTendersToExcel(
   tenderIds: string[]
 ): Promise<ExportExcelResult> {
-  if (tenderIds.length === 0) {
-    return { success: false, error: "لم يتم اختيار أي منافسات" };
-  }
+  z.array(z.string().uuid()).min(1).parse(tenderIds);
 
   const supabase = await createClient();
   const {
@@ -368,6 +369,8 @@ export async function pushTenderToOdoo(tenderId: string): Promise<PushToOdooResu
   if (authError || !user) {
     return { success: false, error: "يجب تسجيل الدخول" };
   }
+
+  z.string().uuid().parse(tenderId);
 
   try {
     const url = process.env.ODOO_URL?.trim();
